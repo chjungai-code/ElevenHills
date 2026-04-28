@@ -20,8 +20,9 @@ export function generateStaticParams() {
   return COMPANIES_SEED.map(c => ({ id: c.id }))
 }
 
-export default function CompanyDetailPage({ params }: { params: { id: string } }) {
-  const company = COMPANIES_SEED.find(c => c.id === params.id)
+export default async function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const company = COMPANIES_SEED.find(c => c.id === id)
   if (!company) notFound()
 
   const parent = company.parent_id
