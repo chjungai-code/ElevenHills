@@ -1,27 +1,23 @@
-# Workspace
+# 일레븐힐스 경영진 대시보드 (Eleven Hills Executive Dashboard)
 
-## Overview
-
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+A Korean corporate governance dashboard for tracking holding/subsidiary structures, ownership, family relationships, and (planned) revenue/reports.
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **Frontend artifact:** `artifacts/dashboard/` — React + Vite + Tailwind v4, wouter routing, dark editorial theme.
+- **Auth (optional):** Supabase JS client. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to enable login. When unset, dev bypass is active and any login goes straight to the dashboard.
+- **Scaffold packages:** `artifacts/api-server/` (Express, currently unused by the app), `artifacts/mockup-sandbox/`, `lib/api-spec/`, `lib/api-client-react/`, `lib/db/`.
 
-## Key Commands
+## Pages
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `/login` — login form (dev bypass when Supabase env not set).
+- `/` — overview with stats and family relationships.
+- `/governance` — tree view + org chart toggle.
+- `/governance/:id` — single company detail (locations, shareholders, directors, parent/children).
+- `/revenue` — placeholder (Phase 2).
+- `/reports` — placeholder (Phase 3).
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## Notes
+
+- Migrated from a Next.js (v0/Vercel) project. File-based routing was converted to wouter; `next/link`/`next/image`/`next/navigation` were removed; Supabase SSR was replaced with the browser client; Korean fonts are loaded directly from Google Fonts in `index.html`.
+- All seed data lives in `artifacts/dashboard/src/lib/data/companies.ts`. No backend or database is required to run the app.
