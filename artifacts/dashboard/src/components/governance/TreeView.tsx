@@ -6,6 +6,11 @@ interface Props {
   standalones: CompanyWithRelations[]
 }
 
+/**
+ * Mobile-friendly tree view.
+ * Indents are smaller on phones (`ml-4`) and grow on tablets+ (`md:ml-10`).
+ * Branch widths follow the same rule.
+ */
 export default function TreeView({ holding, standalones }: Props) {
   const children = holding.children ?? []
 
@@ -18,7 +23,7 @@ export default function TreeView({ holding, standalones }: Props) {
 
       {/* Children with tree lines */}
       <div
-        className="ml-10 pl-0 mt-0"
+        className="ml-4 md:ml-10 pl-0 mt-0"
         style={{ borderLeft: '2px solid #2e2e42' }}
       >
         {children.map(child => (
@@ -29,25 +34,25 @@ export default function TreeView({ holding, standalones }: Props) {
             >
               {/* Horizontal branch */}
               <div
-                className="shrink-0 mt-5"
-                style={{ width: '28px', height: '2px', background: '#2e2e42' }}
+                className="shrink-0 mt-5 w-3 md:w-7"
+                style={{ height: '2px', background: '#2e2e42' }}
               />
-              <div className="flex-1 ml-0">
+              <div className="flex-1 ml-0 min-w-0">
                 <CompanyCard company={child} />
 
                 {/* Sub-children */}
                 {child.children && child.children.length > 0 && (
                   <div
-                    className="ml-10 mt-0"
+                    className="ml-4 md:ml-10 mt-0"
                     style={{ borderLeft: '2px solid #2e2e42' }}
                   >
                     {child.children.map(sub => (
                       <div key={sub.id} className="flex items-start mt-3 relative">
                         <div
-                          className="shrink-0 mt-4"
-                          style={{ width: '28px', height: '2px', background: '#2e2e42' }}
+                          className="shrink-0 mt-4 w-3 md:w-7"
+                          style={{ height: '2px', background: '#2e2e42' }}
                         />
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <CompanyCard company={sub} />
                         </div>
                       </div>
@@ -65,7 +70,10 @@ export default function TreeView({ holding, standalones }: Props) {
         <div className="mt-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px" style={{ background: '#2e2e42' }} />
-            <span className="text-[10px] font-mono tracking-widest uppercase whitespace-nowrap" style={{ color: '#6a6a80' }}>
+            <span
+              className="text-[10px] font-mono tracking-widest uppercase whitespace-nowrap"
+              style={{ color: '#6a6a80' }}
+            >
               별도 법인 — 일레븐힐스 미관여
             </span>
             <div className="flex-1 h-px" style={{ background: '#2e2e42' }} />

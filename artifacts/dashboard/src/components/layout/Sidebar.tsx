@@ -21,7 +21,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="w-56 min-h-screen flex flex-col py-6 px-4 shrink-0"
+      className="hidden md:flex w-56 min-h-screen flex-col py-6 px-4 shrink-0"
       style={{ background: '#0f1014', borderRight: '1px solid #1e1f2a' }}
     >
       {/* Brand */}

@@ -3,6 +3,8 @@ import { Switch, Route, Router as WouterRouter, useLocation } from 'wouter'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import Sidebar from '@/components/layout/Sidebar'
+import MobileTopBar from '@/components/layout/MobileTopBar'
+import MobileBottomNav from '@/components/layout/MobileBottomNav'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 import LoginPage from '@/pages/login'
@@ -17,9 +19,16 @@ const queryClient = new QueryClient()
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen" style={{ background: '#0b0c10', color: '#e8e4dc' }}>
+    <div
+      className="flex flex-col md:flex-row min-h-screen"
+      style={{ background: '#0b0c10', color: '#e8e4dc' }}
+    >
+      <MobileTopBar />
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
+        {children}
+      </main>
+      <MobileBottomNav />
     </div>
   )
 }

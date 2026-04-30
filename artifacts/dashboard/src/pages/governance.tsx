@@ -1,21 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { buildCompanyTree, FAMILY_MEMBERS } from '@/lib/data/companies'
 import TreeView from '@/components/governance/TreeView'
 import OrgChart from '@/components/governance/OrgChart'
 
 export default function GovernancePage() {
   const [view, setView] = useState<'tree' | 'org'>('tree')
+  const [isMobile, setIsMobile] = useState(false)
   const { holding, standalones } = buildCompanyTree()
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsMobile(mql.matches)
+    update()
+    mql.addEventListener('change', update)
+    return () => mql.removeEventListener('change', update)
+  }, [])
 
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Header */}
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div className="border-l-2 pl-4" style={{ borderColor: '#c8a96e' }}>
-          <p className="text-[11px] font-mono tracking-widest uppercase mb-1" style={{ color: '#6a6a80' }}>
+          <p
+            className="text-[11px] font-mono tracking-widest uppercase mb-1"
+            style={{ color: '#6a6a80' }}
+          >
             Corporate Governance
           </p>
-          <h1 className="text-2xl font-bold" style={{ color: '#f4eedd' }}>지배구조</h1>
+          <h1 className="text-xl md:text-2xl font-bold" style={{ color: '#f4eedd' }}>
+            지배구조
+          </h1>
         </div>
 
         {/* View toggle */}
@@ -27,14 +41,14 @@ export default function GovernancePage() {
             <button
               key={v}
               onClick={() => setView(v)}
-              className="rounded-lg px-4 py-1.5 text-xs font-mono transition-colors"
+              className="rounded-lg px-3 md:px-4 py-1.5 text-xs font-mono transition-colors"
               style={
                 view === v
                   ? { background: '#1c1d26', color: '#c8a96e', border: '1px solid #272836' }
                   : { background: 'transparent', color: '#6a6a80', border: '1px solid transparent' }
               }
             >
-              {v === 'tree' ? '🌿 트리 구조' : '📊 Org Chart'}
+              {v === 'tree' ? '🌿 트리' : '📊 Org'}
             </button>
           ))}
         </div>
@@ -42,10 +56,13 @@ export default function GovernancePage() {
 
       {/* Family bar */}
       <div
-        className="rounded-xl px-4 py-3 flex flex-wrap gap-5 items-center text-sm"
+        className="rounded-xl px-4 py-3 flex flex-wrap gap-3 md:gap-5 items-center text-sm"
         style={{ background: '#13141a', border: '1px solid #272836' }}
       >
-        <span className="text-[10px] font-mono tracking-widest uppercase" style={{ color: '#c8a96e' }}>
+        <span
+          className="text-[10px] font-mono tracking-widest uppercase w-full md:w-auto"
+          style={{ color: '#c8a96e' }}
+        >
           가족관계
         </span>
         {FAMILY_MEMBERS.map(m => (
@@ -55,6 +72,16 @@ export default function GovernancePage() {
           </span>
         ))}
       </div>
+
+      {/* Mobile hint when org chart is selected on small screens */}
+      {view === 'org' && isMobile && (
+        <p
+          className="text-[11px] font-mono tracking-wider"
+          style={{ color: '#6a6a80' }}
+        >
+          ← 좌우로 스크롤하여 전체 차트를 보세요 →
+        </p>
+      )}
 
       {/* Chart */}
       {view === 'tree'

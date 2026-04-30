@@ -22,17 +22,19 @@ export default function CompanyCard({ company, ehPct }: Props) {
   return (
     <Link href={`/governance/${company.id}`}>
       <div
-        className="rounded-xl p-5 cursor-pointer transition-colors group"
+        className="rounded-xl p-4 md:p-5 cursor-pointer transition-colors group"
         style={{ background: '#1c1d26', border: '1px solid #272836' }}
         onMouseEnter={e => (e.currentTarget.style.borderColor = '#c8a96e')}
         onMouseLeave={e => (e.currentTarget.style.borderColor = '#272836')}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
-          <div>
-            <h3 className="font-bold text-base" style={{ color: '#f4eedd' }}>{company.name}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold text-base break-keep" style={{ color: '#f4eedd' }}>
+              {company.name}
+            </h3>
             {company.locations.length > 0 && (
-              <p className="text-xs mt-0.5" style={{ color: '#6a6a80' }}>
+              <p className="text-xs mt-0.5 break-keep" style={{ color: '#6a6a80' }}>
                 {company.locations.join(' · ')}
               </p>
             )}
