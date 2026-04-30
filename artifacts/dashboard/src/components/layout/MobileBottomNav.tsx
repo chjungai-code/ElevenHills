@@ -29,7 +29,7 @@ export default function MobileBottomNav() {
           <Link
             key={href}
             href={href}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors active:opacity-70"
             style={{
               color: active ? '#c8a96e' : '#6a6a80',
             }}

@@ -25,7 +25,7 @@ export default function CompanyDetailPage() {
       <div className="max-w-2xl space-y-6">
         <Link
           href="/governance"
-          className="text-xs font-mono flex items-center gap-1 hover:opacity-70 transition-opacity"
+          className="text-xs font-mono inline-flex items-center gap-1 min-h-[44px] hover:opacity-70 transition-opacity"
           style={{ color: '#6a6a80' }}
         >
           ← 지배구조로 돌아가기
@@ -51,25 +51,27 @@ export default function CompanyDetailPage() {
       {/* Back */}
       <Link
         href="/governance"
-        className="text-xs font-mono flex items-center gap-1 hover:opacity-70 transition-opacity"
+        className="text-xs font-mono inline-flex items-center gap-1 min-h-[44px] hover:opacity-70 transition-opacity"
         style={{ color: '#6a6a80' }}
       >
         ← 지배구조로 돌아가기
       </Link>
 
       {/* Header */}
-      <div className="border-l-2 pl-4" style={{ borderColor: '#c8a96e' }}>
+      <div className="border-l-2 pl-4 min-w-0" style={{ borderColor: '#c8a96e' }}>
         <p
           className="text-[11px] font-mono tracking-widest uppercase mb-1"
           style={{ color: '#6a6a80' }}
         >
           {CATEGORY_KO[company.category]}
         </p>
-        <h1 className="text-xl md:text-2xl font-bold" style={{ color: '#f4eedd' }}>
+        <h1 className="text-xl md:text-2xl font-bold break-keep" style={{ color: '#f4eedd' }}>
           {company.name}
         </h1>
         {company.short_name && (
-          <p className="text-sm mt-0.5" style={{ color: '#6a6a80' }}>{company.short_name}</p>
+          <p className="text-sm mt-0.5 break-keep" style={{ color: '#6a6a80' }}>
+            {company.short_name}
+          </p>
         )}
       </div>
 
@@ -89,7 +91,7 @@ export default function CompanyDetailPage() {
             {company.locations.map(loc => (
               <span
                 key={loc}
-                className="rounded-md px-3 py-1 text-sm"
+                className="rounded-md px-3 py-1 text-sm break-keep"
                 style={{ background: '#1c1d26', border: '1px solid #272836', color: '#e8e4dc' }}
               >
                 {loc}
@@ -113,9 +115,38 @@ export default function CompanyDetailPage() {
           </p>
           <OwnershipBar shareholders={company.shareholders} />
 
-          {/* Table — scrolls horizontally on narrow screens */}
-          <div className="mt-4 -mx-4 px-4 overflow-x-auto">
-            <table className="w-full text-sm min-w-[320px]">
+          {/* Mobile: stacked card list */}
+          <ul className="mt-4 space-y-2 md:hidden">
+            {company.shareholders.map((sh, i) => (
+              <li
+                key={sh.id ?? i}
+                className="rounded-lg px-3 py-2.5 flex items-center justify-between gap-3"
+                style={{ background: '#1c1d26', border: '1px solid #272836' }}
+              >
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="text-sm font-medium break-keep"
+                    style={{ color: '#e8e4dc' }}
+                  >
+                    {sh.name}
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: '#6a6a80' }}>
+                    {sh.is_entity ? '법인' : '개인'}
+                  </p>
+                </div>
+                <span
+                  className="font-mono text-sm whitespace-nowrap"
+                  style={{ color: '#c8a96e' }}
+                >
+                  {sh.percentage}%
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop: table */}
+          <div className="mt-4 hidden md:block">
+            <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid #272836' }}>
                   <th className="text-left pb-2 font-normal text-xs" style={{ color: '#6a6a80' }}>
@@ -132,7 +163,9 @@ export default function CompanyDetailPage() {
               <tbody>
                 {company.shareholders.map((sh, i) => (
                   <tr key={sh.id ?? i} style={{ borderBottom: '1px solid #1a1a26' }}>
-                    <td className="py-2 pr-3" style={{ color: '#e8e4dc' }}>{sh.name}</td>
+                    <td className="py-2 pr-3 break-keep" style={{ color: '#e8e4dc' }}>
+                      {sh.name}
+                    </td>
                     <td
                       className="py-2 text-right font-mono whitespace-nowrap"
                       style={{ color: '#c8a96e' }}
@@ -162,27 +195,31 @@ export default function CompanyDetailPage() {
           >
             임원 현황
           </p>
-          <div className="space-y-2">
+          <ul className="space-y-2">
             {company.directors.map((d, i) => (
-              <div
+              <li
                 key={d.id ?? i}
-                className="flex justify-between items-center text-sm gap-3"
+                className="flex justify-between items-start text-sm gap-3 flex-wrap sm:flex-nowrap"
               >
-                <span style={{ color: '#e8e4dc' }}>{d.name}</span>
-                <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                <span className="break-keep min-w-0" style={{ color: '#e8e4dc' }}>
+                  {d.name}
+                </span>
+                <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap justify-end">
                   <span
-                    className="rounded-full px-2 py-0.5 text-[10px] font-mono"
+                    className="rounded-full px-2 py-0.5 text-[10px] font-mono whitespace-nowrap"
                     style={{ background: '#1c1d26', color: '#7eb8d4', border: '1px solid #272836' }}
                   >
                     {ROLE_KO[d.role] ?? d.role}
                   </span>
                   {d.as_of_date && (
-                    <span className="text-xs" style={{ color: '#6a6a80' }}>{d.as_of_date}</span>
+                    <span className="text-xs whitespace-nowrap" style={{ color: '#6a6a80' }}>
+                      {d.as_of_date}
+                    </span>
                   )}
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
 
@@ -197,13 +234,13 @@ export default function CompanyDetailPage() {
         >
           계열 관계
         </p>
-        <div className="space-y-2 text-sm">
+        <div className="space-y-3 text-sm">
           {parent && (
             <div className="flex items-center gap-2 flex-wrap">
               <span style={{ color: '#6a6a80' }}>모회사</span>
               <Link
                 href={`/governance/${parent.id}`}
-                className="rounded-md px-2 py-0.5 hover:opacity-80"
+                className="rounded-md px-2 py-1 hover:opacity-80 break-keep"
                 style={{ background: '#1c1d26', color: '#c8a96e', border: '1px solid #272836' }}
               >
                 {parent.name}
@@ -218,7 +255,7 @@ export default function CompanyDetailPage() {
                   <Link
                     key={ch.id}
                     href={`/governance/${ch.id}`}
-                    className="rounded-md px-2 py-0.5 text-xs hover:opacity-80"
+                    className="rounded-md px-2 py-1 text-xs hover:opacity-80 break-keep"
                     style={{ background: '#1c1d26', color: '#7eb8d4', border: '1px solid #272836' }}
                   >
                     {ch.name}

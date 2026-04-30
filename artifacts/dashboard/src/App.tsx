@@ -20,12 +20,14 @@ const queryClient = new QueryClient()
 function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="flex flex-col md:flex-row min-h-screen"
+      className="flex flex-col md:flex-row min-h-screen w-full overflow-x-hidden"
       style={{ background: '#0b0c10', color: '#e8e4dc' }}
     >
       <MobileTopBar />
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
+      <main
+        className="flex-1 min-w-0 overflow-y-auto px-4 pt-4 md:p-8 main-mobile-pb"
+      >
         {children}
       </main>
       <MobileBottomNav />

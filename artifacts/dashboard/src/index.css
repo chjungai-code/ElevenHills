@@ -23,10 +23,39 @@ html, body, #root {
   height: 100%;
 }
 
+html, body {
+  /* Prevent any stray child from causing horizontal page scroll on mobile. */
+  overflow-x: hidden;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-noto);
   -webkit-font-smoothing: antialiased;
   margin: 0;
+  /* Korean-aware line breaking by default; override per-element when needed. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* ── Safe-area helpers ─────────────────────────────────────────── */
+.safe-pt { padding-top: env(safe-area-inset-top); }
+.safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Mobile chrome heights — keep in sync with MobileTopBar / MobileBottomNav. */
+:root {
+  --mobile-topbar-h: 56px;
+  --mobile-bottomnav-h: 64px;
+}
+
+/* Mobile main-content bottom padding: clears the fixed bottom nav + iOS safe area. */
+.main-mobile-pb {
+  padding-bottom: calc(var(--mobile-bottomnav-h) + env(safe-area-inset-bottom) + 1rem);
+}
+@media (min-width: 768px) {
+  .main-mobile-pb {
+    /* Bottom nav is hidden on md+, so use the standard desktop padding. */
+    padding-bottom: 2rem;
+  }
 }
