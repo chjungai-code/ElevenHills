@@ -1,0 +1,569 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #F5F3EE;
+    --card: #FFFFFF;
+    --ink: #1A1916;
+    --muted: #6B6760;
+    --faint: #E8E5DE;
+    --border: rgba(0,0,0,0.07);
+    --accent: #8C4A2F;
+    --accent-light: rgba(140,74,47,0.1);
+    --blue: #1C3F6E;
+    --blue-light: rgba(28,63,110,0.08);
+    --green: #1D5C3A;
+    --green-light: rgba(29,92,58,0.08);
+    --purple: #3D2B6B;
+    --purple-light: rgba(61,43,107,0.08);
+    --gold: #A07830;
+    --gold-light: rgba(160,120,48,0.1);
+    --up: #1D8A4A;
+    --dn: #B5281A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .dash { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--ink); padding: 28px 22px 48px; }
+
+  /* Header */
+  .header { margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--faint); display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+  .eyebrow { font-size: 9.5px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 7px; }
+  .header h1 { font-family: 'Noto Serif KR', serif; font-size: 24px; font-weight: 500; line-height: 1.3; }
+  .header h1 em { font-style: normal; color: var(--muted); font-weight: 400; }
+  .tagline { font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.6; }
+  .period-tabs { display: flex; gap: 3px; flex-shrink: 0; }
+  .ptab { font-size: 10.5px; padding: 4px 11px; border-radius: 20px; border: 1px solid var(--faint); cursor: pointer; background: transparent; color: var(--muted); font-family: 'Noto Sans KR', sans-serif; transition: all 0.15s; }
+  .ptab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  /* REIT 비교 박스 */
+  .reit-note { background: var(--gold-light); border-left: 3px solid var(--gold); border-radius: 0 10px 10px 0; padding: 12px 16px; margin-bottom: 22px; }
+  .reit-note-label { font-size: 9.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px; }
+  .reit-note p { font-size: 11.5px; color: var(--ink); line-height: 1.65; }
+  .reit-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .rc-item { display: flex; align-items: baseline; gap: 6px; font-size: 11px; }
+  .rc-reit { color: var(--gold); font-weight: 600; min-width: 120px; }
+  .rc-ours { color: var(--ink); }
+
+  /* Tier label */
+  .tier-bar { display: flex; align-items: center; gap: 10px; margin: 24px 0 14px; }
+  .tier-bar .tb-num { font-size: 9px; font-weight: 700; background: var(--ink); color: #fff; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .tier-bar .tb-title { font-size: 12px; font-weight: 600; color: var(--ink); }
+  .tier-bar .tb-desc { font-size: 10.5px; color: var(--muted); }
+  .tier-bar::after { content: ''; flex: 1; height: 1px; background: var(--faint); }
+
+  /* Tier 1 KPI cards */
+  .t1 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 15px 14px; position: relative; overflow: hidden; transition: box-shadow 0.18s; }
+  .kpi:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.07); }
+  .kpi-stripe { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
+  .s-port { background: var(--accent); }
+  .s-income { background: var(--blue); }
+  .s-traffic { background: var(--green); }
+  .s-fin { background: var(--purple); }
+  .kpi-cat { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 10px; display: inline-block; margin-bottom: 10px; }
+  .c-port { background: var(--accent-light); color: var(--accent); }
+  .c-income { background: var(--blue-light); color: var(--blue); }
+  .c-traffic { background: var(--green-light); color: var(--green); }
+  .c-fin { background: var(--purple-light); color: var(--purple); }
+  .c-gold { background: var(--gold-light); color: var(--gold); }
+  .kpi-name { font-size: 11px; color: var(--muted); margin-bottom: 5px; line-height: 1.4; }
+  .kpi-en { font-size: 9.5px; color: var(--faint); color: #bbb; margin-bottom: 6px; }
+  .kpi-val { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 500; color: var(--ink); line-height: 1; }
+  .kpi-delta { font-size: 10px; margin-top: 5px; }
+  .up { color: var(--up); }
+  .dn { color: var(--dn); }
+  .kpi-note { font-size: 10px; color: var(--muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--faint); line-height: 1.55; }
+  .kpi-reit { font-size: 9.5px; color: var(--gold); margin-top: 4px; font-weight: 500; }
+
+  /* Tier 2 */
+  .t2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sec { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+  .sec-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .sec-hd h3 { font-family: 'Noto Serif KR', serif; font-size: 15px; font-weight: 500; }
+  .mrow { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--faint); }
+  .mrow:last-child { border-bottom: none; }
+  .mrow-name { font-size: 12px; font-weight: 500; color: var(--ink); line-height: 1.3; }
+  .mrow-en { font-size: 9.5px; color: #bbb; margin-top: 1px; }
+  .mrow-why { font-size: 10px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+  .mrow-reit { font-size: 9.5px; color: var(--gold); margin-top: 2px; }
+  .mbadge { font-size: 10px; font-family: 'IBM Plex Mono', monospace; font-weight: 500; padding: 2px 8px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+  .full { grid-column: 1 / -1; }
+
+  /* Tenant mix */
+  .mix-strip { display: flex; height: 8px; border-radius: 6px; overflow: hidden; margin: 12px 0 6px; }
+  .mix-seg { height: 100%; }
+  .mix-legend { display: flex; flex-wrap: wrap; gap: 7px 14px; }
+  .mix-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
+  .mix-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Legend */
+  .legend { display: flex; gap: 14px; margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--faint); flex-wrap: wrap; align-items: center; }
+  .leg-label { font-size: 9.5px; font-weight: 600; letter-spacing: 0.1em; color: var(--muted); }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--muted); }
+  .leg-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+  .footnote { font-size: 10px; color: var(--muted); margin-top: 16px; line-height: 1.75; }
+
+  @media (max-width: 620px) {
+    .t1 { grid-template-columns: 1fr 1fr; }
+    .t2 { grid-template-columns: 1fr; }
+    .reit-compare { grid-template-columns: 1fr; }
+    .header { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+
+<div class="dash">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="eyebrow">경영진 성과 대시보드 · Retail CRE</div>
+      <h1>포트폴리오 핵심 지표 <em>현황</em></h1>
+      <div class="tagline">리테일 상업용 부동산 임대인 관점 · 임차인 기반 수익 모델 · CEO 및 주주용</div>
+    </div>
+    <div class="period-tabs">
+      <button class="ptab">월간</button>
+      <button class="ptab active">분기</button>
+      <button class="ptab">연간</button>
+      <button class="ptab">LTM</button>
+    </div>
+  </div>
+
+  <!-- REIT 비교 인사이트 -->
+  <div class="reit-note">
+    <div class="reit-note-label">📊 REIT 지표와의 연관성</div>
+    <p>리테일 상업용 부동산 임대 사업의 핵심 지표는 상장 리테일 REIT(리츠)가 투자자에게 보고하는 지표와 구조적으로 동일합니다. 아래는 주요 대응 관계입니다.</p>
+    <div class="reit-compare">
+      <div class="rc-item"><span class="rc-reit">REIT: FFO (운영자금)</span><span class="rc-ours">→ NOI에서 출발하는 현금수익 지표</span></div>
+      <div class="rc-item"><span class="rc-reit">REIT: 점유율</span><span class="rc-ours">→ 포트폴리오 임대율 (GLA 기준)</span></div>
+      <div class="rc-item"><span class="rc-reit">REIT: 동일자산 NOI 성장률</span><span class="rc-ours">→ Same-store NOI growth</span></div>
+      <div class="rc-item"><span class="rc-reit">REIT: WALE</span><span class="rc-ours">→ 가중평균 잔여 임대기간</span></div>
+      <div class="rc-item"><span class="rc-reit">REIT: 임대 역전율</span><span class="rc-ours">→ 갱신 시 임대료 변동률</span></div>
+      <div class="rc-item"><span class="rc-reit">REIT: LTV / ICR</span><span class="rc-ours">→ 재무건전성 핵심 커버넌트</span></div>
+    </div>
+  </div>
+
+  <!-- TIER 1 -->
+  <div class="tier-bar">
+    <span class="tb-num">1</span>
+    <span class="tb-title">핵심 KPI</span>
+    <span class="tb-desc">이사회 보고·주주 보고서용 — 매 이사회 검토</span>
+  </div>
+  <div class="t1">
+
+    <div class="kpi">
+      <div class="kpi-stripe s-port"></div>
+      <span class="kpi-cat c-port">포트폴리오</span>
+      <div class="kpi-name">포트폴리오 임대율</div>
+      <div class="kpi-en">Portfolio Occupancy Rate</div>
+      <div class="kpi-val">—%</div>
+      <div class="kpi-delta"><span class="up">↑ 전분기 대비 개선</span></div>
+      <div class="kpi-note">전체 임대가능면적(GLA) 중 임대된 비율. 리테일 임대사업의 최우선 지표.</div>
+      <div class="kpi-reit">★ REIT 공시 핵심 지표</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-stripe s-income"></div>
+      <span class="kpi-cat c-income">임대수익</span>
+      <div class="kpi-name">총 임대수익 (GRI)</div>
+      <div class="kpi-en">Gross Rental Income</div>
+      <div class="kpi-val">—억원</div>
+      <div class="kpi-delta"><span class="up">↑ 전년 동기 대비</span></div>
+      <div class="kpi-note">청구된 임대료 총액. 임대사업 손익의 최상단 매출 항목.</div>
+      <div class="kpi-reit">★ REIT 공시 핵심 지표</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-stripe s-income"></div>
+      <span class="kpi-cat c-income">임대수익</span>
+      <div class="kpi-name">순영업이익 (NOI)</div>
+      <div class="kpi-en">Net Operating Income</div>
+      <div class="kpi-val">—억원</div>
+      <div class="kpi-delta"><span class="up">↑ 예산 대비 초과</span></div>
+      <div class="kpi-note">GRI에서 운영비용 차감. 모든 부동산 투자자가 주시하는 핵심 수익성 지표.</div>
+      <div class="kpi-reit">★ REIT FFO 산출의 출발점</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-stripe s-fin"></div>
+      <span class="kpi-cat c-fin">재무건전성</span>
+      <div class="kpi-name">사업운영수익 (FFO)</div>
+      <div class="kpi-en">Funds From Operations</div>
+      <div class="kpi-val">—억원</div>
+      <div class="kpi-delta"><span class="up">↑ 전년 동기 대비</span></div>
+      <div class="kpi-note">당기순이익에 감가상각비를 더하고 자산매각수익을 차감한 포트폴리오의 실질 현금창출능력.</div>
+      <div class="kpi-reit">★ REIT 배당 재원 핵심 지표</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-stripe s-port"></div>
+      <span class="kpi-cat c-port">포트폴리오</span>
+      <div class="kpi-name">가중평균 잔여 임대기간 (WALE)</div>
+      <div class="kpi-en">Weighted Avg. Lease Expiry</div>
+      <div class="kpi-val">— 년</div>
+      <div class="kpi-delta"><span class="up">목표 3년 이상 유지</span></div>
+      <div class="kpi-note">수익의 가시성 지표. WALE이 길수록 안정적인 미래 임대수익을 의미.</div>
+      <div class="kpi-reit">★ REIT 투자자 필수 확인 지표</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-stripe s-fin"></div>
+      <span class="kpi-cat c-fin">재무건전성</span>
+      <div class="kpi-name">순자산가치 (NAV)</div>
+      <div class="kpi-en">Net Asset Value</div>
+      <div class="kpi-val">—억원</div>
+      <div class="kpi-delta"><span class="up">↑ 가치평가 상승</span></div>
+      <div class="kpi-note">보유 부동산의 시장가치 총액에서 총부채를 차감한 포트폴리오의 순투자가치.</div>
+      <div class="kpi-reit">★ REIT 주가 및 기업가치 평가 기준</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-stripe s-traffic"></div>
+      <span class="kpi-cat c-traffic">집객·임차인</span>
+      <div class="kpi-name">임차인 평당 매출</div>
+      <div class="kpi-en">Tenant Sales per sqm</div>
+      <div class="kpi-val">—만원</div>
+      <div class="kpi-delta"><span class="up">↑ 전년 동기 대비</span></div>
+      <div class="kpi-note">임차인의 리테일 생산성. 임대 갱신 가능성과 임대료 인상 여력의 예측 지표.</div>
+      <div class="kpi-reit">★ 리테일 REIT 핵심 모니터링 항목</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-stripe s-fin"></div>
+      <span class="kpi-cat c-fin">재무건전성</span>
+      <div class="kpi-name">순부채 / EBITDA</div>
+      <div class="kpi-en">Net Debt / EBITDA</div>
+      <div class="kpi-val">— 배</div>
+      <div class="kpi-delta"><span class="up">커버넌트 이내</span></div>
+      <div class="kpi-note">레버리지 비율. 금융기관과 주주가 리스크 지표로 가장 먼저 확인하는 수치.</div>
+      <div class="kpi-reit">★ REIT 신용등급 핵심 기준</div>
+    </div>
+
+  </div>
+
+  <!-- TIER 2 -->
+  <div class="tier-bar">
+    <span class="tb-num">2</span>
+    <span class="tb-title">운영 KPI</span>
+    <span class="tb-desc">CEO·경영진 월간 검토 — 자산별·구역별 드릴다운</span>
+  </div>
+
+  <div class="t2">
+
+    <!-- 임대 & 공실 -->
+    <div class="sec">
+      <div class="sec-hd">
+        <h3>임대 현황 및 공실 관리</h3>
+        <span class="kpi-cat c-port">포트폴리오</span>
+      </div>
+      <div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">자산·구역별 공실률</div>
+            <div class="mrow-en">Vacancy Rate by Asset & Zone</div>
+            <div class="mrow-why">빈 GLA가 어느 몰, 층, 구역에 집중되어 있는지 파악 → 임대 우선순위 결정.</div>
+          </div>
+          <span class="mbadge c-port">%</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">향후 24개월 임대 만료 스케줄</div>
+            <div class="mrow-en">Lease Expiry Schedule</div>
+            <div class="mrow-why">연도별 만료 예정 임대료 비율. 재임대 리스크와 업무량을 선제적으로 파악.</div>
+          </div>
+          <span class="mbadge c-port">%</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">임대 갱신율</div>
+            <div class="mrow-en">Lease Renewal Rate</div>
+            <div class="mrow-why">만료 임대 중 갱신 비율. 낮으면 임차인 불만 또는 상권 경쟁력 약화 신호.</div>
+            <div class="mrow-reit">★ REIT 임대 안정성 핵심 지표</div>
+          </div>
+          <span class="mbadge c-port">%</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">평균 공실 기간</div>
+            <div class="mrow-en">Average Leasing Downtime</div>
+            <div class="mrow-why">임차인 교체 시 공실 일수. 수익 공백에 직접 영향.</div>
+          </div>
+          <span class="mbadge c-port">일(日)</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">임대 협상 파이프라인 (LOI 체결 면적)</div>
+            <div class="mrow-en">Leasing Pipeline</div>
+            <div class="mrow-why">계약 협상 중인 GLA 면적. 향후 임대율 회복의 선행지표.</div>
+          </div>
+          <span class="mbadge c-port">㎡</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 임대수익 품질 -->
+    <div class="sec">
+      <div class="sec-hd">
+        <h3>임대수익 품질</h3>
+        <span class="kpi-cat c-income">임대수익</span>
+      </div>
+      <div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">임대료 역전율 (Rental Reversion)</div>
+            <div class="mrow-en">Rental Reversion Rate</div>
+            <div class="mrow-why">갱신 시 구 임대료 대비 신 임대료 변동률. 양수=임대료 성장, 음수=시장 압박.</div>
+            <div class="mrow-reit">★ 리테일 REIT 핵심 성장 지표</div>
+          </div>
+          <span class="mbadge c-income">%</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">실효 임대료 vs 명목 임대료</div>
+            <div class="mrow-en">Effective vs. Face Rent</div>
+            <div class="mrow-why">명목 임대료에서 무상임대(rent-free) 등 인센티브 차감한 실제 수익.</div>
+          </div>
+          <span class="mbadge c-income">원/㎡</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">고정 임대료 vs 매출연동 임대료</div>
+            <div class="mrow-en">Base Rent vs. Turnover Rent</div>
+            <div class="mrow-why">임차인 매출의 일정 비율로 받는 매출연동 임대료. 임차인 실적 호조 시 추가 수익 발생.</div>
+          </div>
+          <span class="mbadge c-income">억원</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">자산별 NOI 마진</div>
+            <div class="mrow-en">NOI Margin by Property</div>
+            <div class="mrow-why">NOI ÷ GRI. 어느 자산이 운영 효율이 높고 낮은지 파악.</div>
+            <div class="mrow-reit">★ REIT 자산 효율성 분석 지표</div>
+          </div>
+          <span class="mbadge c-income">%</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">연체 및 무상임대 인센티브 현황</div>
+            <div class="mrow-en">Arrears & Rent-Free Incentives</div>
+            <div class="mrow-why">신규 임대 유치를 위해 제공된 양보 조건의 실제 비용 추적.</div>
+          </div>
+          <span class="mbadge c-income">억원</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">임대료 수금률</div>
+            <div class="mrow-en">Rent Collection Rate</div>
+            <div class="mrow-why">청구된 임대료 중 기한 내 수금 비율. 임차인 재무 위기의 선행지표.</div>
+          </div>
+          <span class="mbadge c-income">%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 임차인 건강도 & 구성 (전체 폭) -->
+    <div class="sec full">
+      <div class="sec-hd">
+        <h3>임차인 건강도 및 구성 (Tenant Mix)</h3>
+        <span class="kpi-cat c-traffic">집객·임차인</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">임차인 구성 예시 (GLA 기준 비율)</div>
+      <div class="mix-strip">
+        <div class="mix-seg" style="width:22%;background:#8C4A2F;"></div>
+        <div class="mix-seg" style="width:20%;background:#1C3F6E;"></div>
+        <div class="mix-seg" style="width:16%;background:#1D5C3A;"></div>
+        <div class="mix-seg" style="width:13%;background:#3D2B6B;"></div>
+        <div class="mix-seg" style="width:12%;background:#7A5230;"></div>
+        <div class="mix-seg" style="width:9%;background:#2E6B8A;"></div>
+        <div class="mix-seg" style="width:8%;background:#999;"></div>
+      </div>
+      <div class="mix-legend" style="margin-bottom:16px;">
+        <div class="mix-item"><div class="mix-dot" style="background:#8C4A2F;"></div>패션·의류</div>
+        <div class="mix-item"><div class="mix-dot" style="background:#1C3F6E;"></div>F&B·외식</div>
+        <div class="mix-item"><div class="mix-dot" style="background:#1D5C3A;"></div>앵커·백화점</div>
+        <div class="mix-item"><div class="mix-dot" style="background:#3D2B6B;"></div>엔터테인먼트</div>
+        <div class="mix-item"><div class="mix-dot" style="background:#7A5230;"></div>뷰티·헬스</div>
+        <div class="mix-item"><div class="mix-dot" style="background:#2E6B8A;"></div>서비스·기타</div>
+        <div class="mix-item"><div class="mix-dot" style="background:#999;"></div>기타</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">임차인 평당 매출 (업종별)</div>
+            <div class="mrow-en">Tenant Sales per sqm by Category</div>
+            <div class="mrow-why">업종별 리테일 생산성 비교. 실적 부진 임차인은 갱신 미참여 리스크.</div>
+          </div>
+          <span class="mbadge c-traffic">원/㎡</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">임차인 임대비용 부담률</div>
+            <div class="mrow-en">Occupancy Cost Ratio</div>
+            <div class="mrow-why">임차인 임대료 ÷ 임차인 매출. 15% 초과 시 임차인 재무 부담 경보.</div>
+            <div class="mrow-reit">★ 임차인 임대 지속가능성 지표</div>
+          </div>
+          <span class="mbadge c-traffic">%</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">앵커 임차인 실적</div>
+            <div class="mrow-en">Anchor Tenant Performance</div>
+            <div class="mrow-why">앵커가 몰 전체 집객을 견인. 앵커의 건강 = 몰의 건강.</div>
+          </div>
+          <span class="mbadge c-traffic">매출</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">상위 5개 임차인 임대수익 집중도</div>
+            <div class="mrow-en">Top-5 Tenant Rent Concentration</div>
+            <div class="mrow-why">전체 GRI 중 상위 5개 임차인 비중. 높을수록 수익 집중 리스크.</div>
+          </div>
+          <span class="mbadge c-traffic">%</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">임차인 구성 비율 (GLA 기준)</div>
+            <div class="mrow-en">Tenant Mix by Category</div>
+            <div class="mrow-why">F&B·패션·엔터·앵커·서비스 비율. 균형 잡힌 구성이 상권 노후화 리스크 감소.</div>
+          </div>
+          <span class="mbadge c-traffic">%</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">임차인 신용·연체 위험 모니터링</div>
+            <div class="mrow-en">Tenant Default Watch-list</div>
+            <div class="mrow-why">연체 또는 매출 감소 임차인 내부 리스크 등급. 선제적 관리 근거.</div>
+          </div>
+          <span class="mbadge c-traffic">건수</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 몰 집객력 -->
+    <div class="sec">
+      <div class="sec-hd">
+        <h3>몰 집객력 및 방문객 경험</h3>
+        <span class="kpi-cat c-traffic">집객·임차인</span>
+      </div>
+      <div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">쇼핑몰 방문객 수</div>
+            <div class="mrow-en">Shopper Foot Traffic</div>
+            <div class="mrow-why">전체 포트폴리오 방문객 수 합계. 임차인 매출 및 임대료 납부 건전성의 선행지표.</div>
+          </div>
+          <span class="mbadge c-traffic">만명</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">자산별 방문객 수 (Footfall)</div>
+            <div class="mrow-en">Foot Traffic by Property</div>
+            <div class="mrow-why">일·주간 방문객 수. 어느 몰이 집객력을 유지·잃고 있는지 파악.</div>
+          </div>
+          <span class="mbadge c-traffic">명</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">체류 시간 (Dwell Time)</div>
+            <div class="mrow-en">Dwell Time</div>
+            <div class="mrow-why">방문당 평균 체류 시간. 길수록 소비 금액 증가. 몰 경험 품질의 핵심 결과 지표.</div>
+          </div>
+          <span class="mbadge c-traffic">분</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">쇼핑 전환율</div>
+            <div class="mrow-en">Shopper Conversion Rate</div>
+            <div class="mrow-why">방문자 중 실제 구매자 비율. 낮으면 상품 구성·가격·동선에 문제.</div>
+          </div>
+          <span class="mbadge c-traffic">%</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">고객 만족도 (NPS)</div>
+            <div class="mrow-en">Shopper NPS / CSAT</div>
+            <div class="mrow-why">방문 경험 품질 점수. 재방문 및 구전 효과와 직결.</div>
+          </div>
+          <span class="mbadge c-traffic">점수</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">재방문율</div>
+            <div class="mrow-en">Repeat Visit Rate</div>
+            <div class="mrow-why">기간 내 재방문 방문객 비율. 개별 임차인이 아닌 몰 자체의 충성도 측정.</div>
+          </div>
+          <span class="mbadge c-traffic">%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 재무 건전성 -->
+    <div class="sec">
+      <div class="sec-hd">
+        <h3>재무 건전성</h3>
+        <span class="kpi-cat c-fin">재무</span>
+      </div>
+      <div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">잉여현금흐름 (FCF)</div>
+            <div class="mrow-en">Free Cash Flow</div>
+            <div class="mrow-why">영업 현금흐름 - CapEx. 배당, 부채 상환, 개발 투자의 실질 재원.</div>
+          </div>
+          <span class="mbadge c-fin">억원</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">이자보상배율 (ICR)</div>
+            <div class="mrow-en">Interest Coverage Ratio</div>
+            <div class="mrow-why">EBIT ÷ 이자비용. 부동산 임대사업의 핵심 대출 커버넌트 지표.</div>
+            <div class="mrow-reit">★ REIT 신용등급 필수 지표</div>
+          </div>
+          <span class="mbadge c-fin">배</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">담보인정비율 (LTV)</div>
+            <div class="mrow-en">Loan-to-Value Ratio</div>
+            <div class="mrow-why">부채 ÷ 자산 가치. 리파이낸싱 및 금융기관 관계의 핵심 지표.</div>
+            <div class="mrow-reit">★ REIT 재무 안전성 기준</div>
+          </div>
+          <span class="mbadge c-fin">%</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">자본지출 (CapEx) 실적 vs 예산</div>
+            <div class="mrow-en">CapEx vs. Budget</div>
+            <div class="mrow-why">유지보수·리모델링·개발 자본지출의 예산 대비 집행 현황.</div>
+          </div>
+          <span class="mbadge c-fin">억원</span>
+        </div>
+        <div class="mrow">
+          <div>
+            <div class="mrow-name">예산 대비 실적 편차 (자산별)</div>
+            <div class="mrow-en">Budget vs. Actual Variance</div>
+            <div class="mrow-why">자산별 수익·비용 가정의 실현 여부. 조기 이상 탐지 목적.</div>
+          </div>
+          <span class="mbadge c-fin">%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <span class="leg-label">구분</span>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--accent);"></div>포트폴리오·임대</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--blue);"></div>임대수익</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--green);"></div>집객·임차인</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--purple);"></div>재무건전성</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--gold);"></div>★ REIT 공통 지표</div>
+  </div>
+
+  <div class="footnote">
+    <strong>Tier 1</strong> — 이사회 보고 및 주주 보고서용 8개 핵심 KPI. 매 이사회 전 업데이트.<br>
+    <strong>Tier 2</strong> — CEO·경영진 월간 운영 검토. 자산별·구역별 드릴다운 가능.<br>
+    ★ 표시 지표는 상장 리테일 REIT(리츠)가 투자자에게 공시하는 지표와 동일하게 정의 및 산출 가능. ICSC, Nareit, NCREIF 기준 참조.
+  </div>
+
+</div>
