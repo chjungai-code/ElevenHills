@@ -5,7 +5,7 @@ const NAV = [
   { href: '/',            label: '전체 현황',   icon: '◈' },
   { href: '/governance',  label: '지배구조',    icon: '⬡' },
   { href: '/revenue',     label: '매출 현황',   icon: '◉' },
-  { href: '/reports',     label: '보고서',      icon: '▤' },
+  { href: '/reports',     label: '성과지표',     icon: '▦' },
 ]
 
 export default function Sidebar() {
