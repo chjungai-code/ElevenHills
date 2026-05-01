@@ -23,8 +23,8 @@ export default function MobileTopBar() {
         paddingTop: 'env(safe-area-inset-top)',
       }}
     >
-      <div className="flex items-center justify-between px-4 py-3 min-h-[56px]">
-        <div className="pl-3 border-l-2 min-w-0" style={{ borderColor: '#c8a96e' }}>
+      <div className="flex items-center justify-between gap-3 px-4 py-3 min-h-[56px]">
+        <div className="pl-3 border-l-2 min-w-0 flex-1" style={{ borderColor: '#c8a96e' }}>
           <p
             className="text-[9px] font-mono tracking-widest uppercase"
             style={{ color: '#6a6a80' }}
@@ -35,23 +35,23 @@ export default function MobileTopBar() {
             일레븐힐스
           </span>
         </div>
-      </div>
 
-      <button
-        onClick={handleLogout}
-        aria-label="로그아웃"
-        className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors hover:opacity-70"
-        style={{
-          color: '#6a6a80',
-          border: '1px solid #1e1f2a',
-          background: 'rgba(28, 29, 38, 0.4)',
-        }}
-      >
-        <span className="text-xs">⇥</span>
-        <span className="text-[10px] font-mono tracking-widest uppercase">
-          로그아웃
-        </span>
-      </button>
+        <button
+          onClick={handleLogout}
+          aria-label="로그아웃"
+          className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors hover:opacity-70"
+          style={{
+            color: '#6a6a80',
+            border: '1px solid #1e1f2a',
+            background: 'rgba(28, 29, 38, 0.4)',
+          }}
+        >
+          <span className="text-xs">⇥</span>
+          <span className="text-[10px] font-mono tracking-widest uppercase">
+            로그아웃
+          </span>
+        </button>
+      </div>
     </header>
   )
 }
