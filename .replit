@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -9,10 +9,32 @@ args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
 [workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Nightly Revenue Sync"
+
+[[workflows.workflow]]
+name = "Nightly Revenue Sync"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/jobs run sync-revenue"
 
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
+integrations = ["google-sheet:1.0.0"]
 
 [postMerge]
 path = "scripts/post-merge.sh"
@@ -33,3 +55,13 @@ externalPort = 3002
 [[ports]]
 localPort = 23183
 externalPort = 80
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+GOOGLE_SHEETS_CONNECTION_ID = "conn_google-sheet_01KQK5A2C53FZDCD4CYFRTE43A"
+REVENUE_SHEET_ID = "1WODganjPjTs59XcHPEo9z-SH1SLVM3PwF6PvELoFOjk"
+REVENUE_SHEET_RANGE = "2026년!A:Z"

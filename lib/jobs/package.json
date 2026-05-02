@@ -7,6 +7,7 @@
     "sync-revenue": "tsx src/sync-revenue-from-sheets.ts"
   },
   "dependencies": {
+    "@replit/connectors-sdk": "^0.4.0",
     "@workspace/db": "workspace:*",
     "drizzle-orm": "catalog:",
     "pg": "^8.20.0"
