@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export interface RevenueRecord {
   id: string;
@@ -17,11 +14,5 @@ export interface RevenueRecord {
   amount: string;
   category?: string | null;
   memo?: string | null;
-  created_at: string;
+  created_at: Date;
 }
-
-export type GetRevenueParams = {
-  company_id?: string;
-  year?: number;
-  month?: number;
-};

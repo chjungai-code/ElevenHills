@@ -14,3 +14,25 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Returns revenue records with optional filtering by company, year, and month
+ * @summary List revenue records
+ */
+export const GetRevenueQueryParams = zod.object({
+  company_id: zod.coerce.string().optional(),
+  year: zod.coerce.number().optional(),
+  month: zod.coerce.number().optional(),
+});
+
+export const GetRevenueResponseItem = zod.object({
+  id: zod.string(),
+  company_id: zod.string(),
+  year: zod.number(),
+  month: zod.number(),
+  amount: zod.string(),
+  category: zod.string().nullish(),
+  memo: zod.string().nullish(),
+  created_at: zod.coerce.date(),
+});
+export const GetRevenueResponse = zod.array(GetRevenueResponseItem);

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: revenue
+    description: Revenue operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /revenue:
+    get:
+      operationId: getRevenue
+      tags: [revenue]
+      summary: List revenue records
+      description: Returns revenue records with optional filtering by company, year, and month
+      parameters:
+        - name: company_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Revenue records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RevenueRecord"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +66,32 @@ components:
           type: string
       required:
         - status
-
+    RevenueRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        company_id:
+          type: string
+        year:
+          type: integer
+        month:
+          type: integer
+        amount:
+          type: string
+        category:
+          type: string
+          nullable: true
+        memo:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - company_id
+        - year
+        - month
+        - amount
+        - created_at

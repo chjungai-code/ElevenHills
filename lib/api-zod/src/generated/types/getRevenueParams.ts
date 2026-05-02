@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from "./getRevenueParams";
-export * from "./healthStatus";
-export * from "./revenueRecord";
+export type GetRevenueParams = {
+  company_id?: string;
+  year?: number;
+  month?: number;
+};

@@ -13,7 +13,11 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  GetRevenueParams,
+  HealthStatus,
+  RevenueRecord,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
 import type { ErrorType } from "../custom-fetch";
@@ -92,6 +96,101 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns revenue records with optional filtering by company, year, and month
+ * @summary List revenue records
+ */
+export const getGetRevenueUrl = (params?: GetRevenueParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/revenue?${stringifiedParams}`
+    : `/api/revenue`;
+};
+
+export const getRevenue = async (
+  params?: GetRevenueParams,
+  options?: RequestInit,
+): Promise<RevenueRecord[]> => {
+  return customFetch<RevenueRecord[]>(getGetRevenueUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRevenueQueryKey = (params?: GetRevenueParams) => {
+  return [`/api/revenue`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetRevenueQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRevenue>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetRevenueParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRevenue>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRevenueQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRevenue>>> = ({
+    signal,
+  }) => getRevenue(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRevenue>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRevenueQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRevenue>>
+>;
+export type GetRevenueQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List revenue records
+ */
+
+export function useGetRevenue<
+  TData = Awaited<ReturnType<typeof getRevenue>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetRevenueParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRevenue>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRevenueQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
