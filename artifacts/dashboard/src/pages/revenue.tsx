@@ -24,6 +24,13 @@ const COMPANY_COLORS: Record<string, string> = {
   [COMPANY_IDS.BNF_SPORTS]:     '#c07860',
 }
 
+// Palette for per-store colours (cycles through these)
+const STORE_PALETTE = [
+  '#c8a96e','#7eb8d4','#85c49a','#b88ecb','#e07b7b',
+  '#f0c060','#60c0c0','#c07860','#a0c0a0','#d4a0b0',
+  '#80a8d0','#d0b080','#90d0b0','#c0a0d0','#d09080',
+]
+
 function formatKRW(value: number): string {
   if (value >= 100_000_000) return `${(value / 100_000_000).toFixed(1)}억`
   if (value >= 10_000) return `${Math.round(value / 10_000)}만`
@@ -67,20 +74,33 @@ export default function RevenuePage() {
 
   const { data: allRows = [], isLoading, isError } = useGetRevenue({ year: selectedYear })
 
-  // Total revenue for the selected year across all companies
-  const totalRevenue = useMemo(
-    () => allRows.reduce((sum, r) => sum + parseFloat(r.amount), 0),
+  // Separate combined ("매출") rows from per-store ("매출 - X") rows
+  const combinedRows = useMemo(
+    () => allRows.filter(r => r.category === '매출'),
+    [allRows],
+  )
+  const storeRows = useMemo(
+    () => allRows.filter(
+      r => r.company_id === COMPANY_IDS.CITY_OF_DREAMS && r.category.startsWith('매출 - '),
+    ),
     [allRows],
   )
 
+  // Total revenue for the selected year across all companies (combined rows only)
+  const totalRevenue = useMemo(
+    () => combinedRows.reduce((sum, r) => sum + parseFloat(r.amount), 0),
+    [combinedRows],
+  )
+
   // Monthly trend data — aggregated across all companies or filtered by company
+  // Uses combined rows only to avoid double-counting store + total
   const monthlyTrendData = useMemo(() => {
-    const filtered = selectedCompanyId === 'all'
-      ? allRows
-      : allRows.filter(r => r.company_id === selectedCompanyId)
+    const source = selectedCompanyId === 'all'
+      ? combinedRows
+      : combinedRows.filter(r => r.company_id === selectedCompanyId)
 
     const byMonth: Record<number, number> = {}
-    for (const r of filtered) {
+    for (const r of source) {
       byMonth[r.month] = (byMonth[r.month] ?? 0) + parseFloat(r.amount)
     }
 
@@ -88,12 +108,12 @@ export default function RevenuePage() {
       month: label,
       amount: byMonth[i + 1] ?? 0,
     }))
-  }, [allRows, selectedCompanyId])
+  }, [combinedRows, selectedCompanyId])
 
-  // Per-company YTD breakdown
+  // Per-company YTD breakdown (combined rows only)
   const companyBreakdown = useMemo(() => {
     const byCompany: Record<string, number> = {}
-    for (const r of allRows) {
+    for (const r of combinedRows) {
       byCompany[r.company_id] = (byCompany[r.company_id] ?? 0) + parseFloat(r.amount)
     }
 
@@ -106,7 +126,29 @@ export default function RevenuePage() {
         color: COMPANY_COLORS[c.id] ?? '#888',
       }))
       .sort((a, b) => b.amount - a.amount)
-  }, [allRows])
+  }, [combinedRows])
+
+  // Per-store breakdown for City of Dreams
+  const storeBreakdown = useMemo(() => {
+    const byStore: Record<string, number> = {}
+    for (const r of storeRows) {
+      const storeName = r.category.replace(/^매출 - /, '')
+      byStore[storeName] = (byStore[storeName] ?? 0) + parseFloat(r.amount)
+    }
+
+    return Object.entries(byStore)
+      .map(([name, amount], i) => ({
+        name,
+        amount,
+        color: STORE_PALETTE[i % STORE_PALETTE.length],
+      }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [storeRows])
+
+  const storeTotalRevenue = useMemo(
+    () => storeBreakdown.reduce((sum, s) => sum + s.amount, 0),
+    [storeBreakdown],
+  )
 
   const years = [currentYear - 1, currentYear]
 
@@ -323,6 +365,76 @@ export default function RevenuePage() {
           </div>
         )}
       </div>
+
+      {/* City of Dreams per-store breakdown */}
+      {!isLoading && storeBreakdown.length > 0 && (
+        <div className="rounded-xl p-5 md:p-6" style={CARD_STYLE}>
+          <div className="flex items-center gap-3 mb-4">
+            <span
+              className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+              style={{ background: COMPANY_COLORS[COMPANY_IDS.CITY_OF_DREAMS] }}
+            />
+            <p className="text-sm font-semibold" style={VALUE_STYLE}>
+              씨티오브드림스 — 매장별 매출 ({selectedYear})
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {/* Header row */}
+            <div className="grid grid-cols-12 gap-2 pb-2" style={{ borderBottom: '1px solid #272836' }}>
+              <span className="col-span-5 text-[10px] font-mono tracking-widest uppercase" style={LABEL_STYLE}>
+                매장
+              </span>
+              <span className="col-span-4 text-[10px] font-mono tracking-widest uppercase text-right" style={LABEL_STYLE}>
+                누적 매출
+              </span>
+              <span className="col-span-3 text-[10px] font-mono tracking-widest uppercase text-right" style={LABEL_STYLE}>
+                비중
+              </span>
+            </div>
+
+            {storeBreakdown.map((store) => {
+              const pct = storeTotalRevenue > 0 ? (store.amount / storeTotalRevenue) * 100 : 0
+              return (
+                <div
+                  key={store.name}
+                  className="grid grid-cols-12 gap-2 py-2 items-center rounded-lg px-2 -mx-2 hover:bg-white/[0.02] transition-colors"
+                >
+                  <div className="col-span-5 flex items-center gap-2">
+                    <span
+                      className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: store.color }}
+                    />
+                    <span className="text-sm truncate" style={VALUE_STYLE}>{store.name}</span>
+                  </div>
+                  <div className="col-span-4 text-right">
+                    <span className="text-sm font-mono" style={VALUE_STYLE}>
+                      {formatKRWFull(store.amount)}
+                    </span>
+                  </div>
+                  <div className="col-span-3 text-right">
+                    <span className="text-sm font-mono" style={{ color: store.color }}>
+                      {pct.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Total row */}
+            <div
+              className="grid grid-cols-12 gap-2 py-2 items-center rounded-lg px-2 -mx-2 mt-1"
+              style={{ borderTop: '1px solid #272836' }}
+            >
+              <span className="col-span-5 text-sm font-semibold" style={{ color: GOLD }}>합계</span>
+              <span className="col-span-4 text-right text-sm font-semibold font-mono" style={{ color: GOLD }}>
+                {formatKRWFull(storeTotalRevenue)}
+              </span>
+              <span className="col-span-3 text-right text-sm font-mono" style={{ color: GOLD }}>100%</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

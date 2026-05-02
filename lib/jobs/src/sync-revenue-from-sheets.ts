@@ -14,10 +14,15 @@
  *   row 5: "예상 월매출 (성장율)"      (projected monthly revenue)
  *   row 7: "전년 {N}월 매출"           (previous year, same month total)
  *
- * From this we extract two upsert rows per sync (using the value from the
- * "전체" column):
- *   1. (year=tabYear,   month=N, category="매출")     — 이번달 현재까지
- *   2. (year=tabYear-1, month=N, category="매출")     — 전년 동월
+ * From this we extract upsert rows for each column in the header (stores + total):
+ *   For each store column (e.g. "마리떼"):
+ *     category = "매출 - 마리떼"
+ *   For the "전체" (combined) column:
+ *     category = "매출"
+ *
+ *   Data rows extracted:
+ *   1. (year=tabYear,   month=N, category=...)   — 이번달 현재까지
+ *   2. (year=tabYear-1, month=N, category=...)   — 전년 동월
  *
  * Run manually: pnpm --filter @workspace/jobs run sync-revenue
  */
@@ -91,8 +96,24 @@ function extractRowsFromSheet(rows: string[][], tabName: string): UpsertRow[] {
   if (headerRowIdx === -1) {
     throw new Error("Could not find header row containing '전체' column.");
   }
-  const totalIdx = rows[headerRowIdx].findIndex((c) => c.trim() === "전체");
+
+  const headerRow = rows[headerRowIdx];
+  const totalIdx = headerRow.findIndex((c) => c.trim() === "전체");
   console.log(`[sync-revenue] Header at row ${headerRowIdx}, '전체' at column ${totalIdx}.`);
+
+  // Collect all store columns: any column index >= 2 that has a non-empty header
+  // and is not the "전체" column. Columns 0 and 1 are row number / description.
+  type StoreCol = { idx: number; name: string };
+  const storeCols: StoreCol[] = [];
+  for (let i = 2; i < headerRow.length; i++) {
+    const label = headerRow[i].trim();
+    if (label && label !== "전체") {
+      storeCols.push({ idx: i, name: label });
+    }
+  }
+  console.log(
+    `[sync-revenue] Found ${storeCols.length} store column(s): ${storeCols.map((s) => s.name).join(", ")}.`,
+  );
 
   const dataRows = rows.slice(headerRowIdx + 1);
 
@@ -115,33 +136,70 @@ function extractRowsFromSheet(rows: string[][], tabName: string): UpsertRow[] {
 
   for (const row of dataRows) {
     const desc = (row[1] ?? "").trim();
-    const amount = parseAmount(row[totalIdx]);
-    if (amount === null) continue;
 
     // Month-to-date for the current month/year
     if (desc === "이번달 현재까지") {
-      upsertRows.push({
-        company_id: CITY_OF_DREAMS_ID,
-        year: sheetYear,
-        month: currentMonth,
-        amount: amount.toString(),
-        category: "매출",
-        memo: "이번달 현재까지 (Google Sheets 동기화)",
-      });
+      // "전체" combined column → category "매출"
+      const totalAmount = parseAmount(row[totalIdx]);
+      if (totalAmount !== null) {
+        upsertRows.push({
+          company_id: CITY_OF_DREAMS_ID,
+          year: sheetYear,
+          month: currentMonth,
+          amount: totalAmount.toString(),
+          category: "매출",
+          memo: "이번달 현재까지 (Google Sheets 동기화)",
+        });
+      }
+
+      // Per-store columns → category "매출 - {store name}"
+      for (const store of storeCols) {
+        const storeAmount = parseAmount(row[store.idx]);
+        if (storeAmount !== null) {
+          upsertRows.push({
+            company_id: CITY_OF_DREAMS_ID,
+            year: sheetYear,
+            month: currentMonth,
+            amount: storeAmount.toString(),
+            category: `매출 - ${store.name}`,
+            memo: "이번달 현재까지 (Google Sheets 동기화)",
+          });
+        }
+      }
     }
 
     // Previous year, same month total — pattern: "전년 {N}월 매출"
     const prevMatch = desc.match(/^전년\s*(\d{1,2})월\s*매출/);
     if (prevMatch) {
       const month = parseInt(prevMatch[1], 10);
-      upsertRows.push({
-        company_id: CITY_OF_DREAMS_ID,
-        year: sheetYear - 1,
-        month,
-        amount: amount.toString(),
-        category: "매출",
-        memo: "전년 동월 (Google Sheets 동기화)",
-      });
+
+      // "전체" combined column → category "매출"
+      const totalAmount = parseAmount(row[totalIdx]);
+      if (totalAmount !== null) {
+        upsertRows.push({
+          company_id: CITY_OF_DREAMS_ID,
+          year: sheetYear - 1,
+          month,
+          amount: totalAmount.toString(),
+          category: "매출",
+          memo: "전년 동월 (Google Sheets 동기화)",
+        });
+      }
+
+      // Per-store columns → category "매출 - {store name}"
+      for (const store of storeCols) {
+        const storeAmount = parseAmount(row[store.idx]);
+        if (storeAmount !== null) {
+          upsertRows.push({
+            company_id: CITY_OF_DREAMS_ID,
+            year: sheetYear - 1,
+            month,
+            amount: storeAmount.toString(),
+            category: `매출 - ${store.name}`,
+            memo: "전년 동월 (Google Sheets 동기화)",
+          });
+        }
+      }
     }
   }
 
