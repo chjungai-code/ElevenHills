@@ -36,3 +36,12 @@ export const GetRevenueResponseItem = zod.object({
   created_at: zod.coerce.date(),
 });
 export const GetRevenueResponse = zod.array(GetRevenueResponseItem);
+
+/**
+ * Runs the Google Sheets revenue sync job immediately and returns the result
+ * @summary Trigger revenue sync from Google Sheets
+ */
+export const TriggerRevenueSyncResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string(),
+});

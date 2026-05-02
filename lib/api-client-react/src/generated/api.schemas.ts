@@ -9,6 +9,11 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface SyncResult {
+  success: boolean;
+  message: string;
+}
+
 export interface RevenueRecord {
   id: string;
   company_id: string;

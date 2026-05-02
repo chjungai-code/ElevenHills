@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: revenue
     description: Revenue operations
+  - name: sync
+    description: Data sync operations
 paths:
   /healthz:
     get:
@@ -57,6 +59,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RevenueRecord"
+  /sync/revenue:
+    post:
+      operationId: triggerRevenueSync
+      tags: [sync]
+      summary: Trigger revenue sync from Google Sheets
+      description: Runs the Google Sheets revenue sync job immediately and returns the result
+      responses:
+        "200":
+          description: Sync completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResult"
+        "500":
+          description: Sync failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResult"
 components:
   schemas:
     HealthStatus:
@@ -66,6 +87,16 @@ components:
           type: string
       required:
         - status
+    SyncResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
     RevenueRecord:
       type: object
       properties:

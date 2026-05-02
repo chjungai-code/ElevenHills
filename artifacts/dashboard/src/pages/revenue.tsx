@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react'
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { useGetRevenue } from '@workspace/api-client-react'
+import { useGetRevenue, useTriggerRevenueSync } from '@workspace/api-client-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { COMPANIES_SEED, COMPANY_IDS } from '@/lib/data/companies'
 
 const MONTH_LABELS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
@@ -45,6 +46,24 @@ export default function RevenuePage() {
   const currentYear = new Date().getFullYear()
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all')
+  const [syncMessage, setSyncMessage] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const queryClient = useQueryClient()
+  const { mutate: triggerSync, isPending: isSyncing } = useTriggerRevenueSync({
+    mutation: {
+      onSuccess: (data) => {
+        setSyncMessage({ ok: data.success, text: data.message })
+        if (data.success) {
+          queryClient.invalidateQueries({ queryKey: ['/api/revenue'] })
+        }
+        setTimeout(() => setSyncMessage(null), 6000)
+      },
+      onError: () => {
+        setSyncMessage({ ok: false, text: '싱크 요청 중 오류가 발생했습니다.' })
+        setTimeout(() => setSyncMessage(null), 6000)
+      },
+    },
+  })
 
   const { data: allRows = [], isLoading, isError } = useGetRevenue({ year: selectedYear })
 
@@ -94,11 +113,37 @@ export default function RevenuePage() {
   return (
     <div className="max-w-5xl space-y-6">
       {/* Header */}
-      <div className="border-l-2 pl-4" style={{ borderColor: GOLD }}>
-        <p className="text-[11px] font-mono tracking-widest uppercase mb-1" style={LABEL_STYLE}>
-          Revenue
-        </p>
-        <h1 className="text-2xl font-bold" style={VALUE_STYLE}>매출 현황</h1>
+      <div className="flex items-start justify-between gap-4">
+        <div className="border-l-2 pl-4" style={{ borderColor: GOLD }}>
+          <p className="text-[11px] font-mono tracking-widest uppercase mb-1" style={LABEL_STYLE}>
+            Revenue
+          </p>
+          <h1 className="text-2xl font-bold" style={VALUE_STYLE}>매출 현황</h1>
+        </div>
+        <div className="flex flex-col items-end gap-2 pt-1">
+          <button
+            onClick={() => triggerSync()}
+            disabled={isSyncing}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-mono transition-all disabled:opacity-50"
+            style={{ background: '#13141a', border: `1px solid ${GOLD}40`, color: GOLD }}
+          >
+            <span
+              className={isSyncing ? 'animate-spin inline-block' : 'inline-block'}
+              style={{ fontSize: 14 }}
+            >
+              {isSyncing ? '⟳' : '↻'}
+            </span>
+            {isSyncing ? '싱크 중…' : '구글 시트 싱크'}
+          </button>
+          {syncMessage && (
+            <p
+              className="text-xs font-mono max-w-xs text-right"
+              style={{ color: syncMessage.ok ? '#85c49a' : '#e07b7b' }}
+            >
+              {syncMessage.ok ? '✓ ' : '✗ '}{syncMessage.text}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Year selector */}

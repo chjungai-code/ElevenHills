@@ -6,6 +6,16 @@ import Sidebar from '@/components/layout/Sidebar'
 import MobileTopBar from '@/components/layout/MobileTopBar'
 import MobileBottomNav from '@/components/layout/MobileBottomNav'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { setAuthTokenGetter } from '@workspace/api-client-react'
+
+// Supply Supabase session JWT to API client for authenticated endpoints
+if (isSupabaseConfigured) {
+  setAuthTokenGetter(async () => {
+    const supabase = createClient()
+    const { data } = await supabase.auth.getSession()
+    return data.session?.access_token ?? null
+  })
+}
 
 import LoginPage from '@/pages/login'
 import HomePage from '@/pages/home'

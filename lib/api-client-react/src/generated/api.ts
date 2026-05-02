@@ -5,10 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -17,6 +20,7 @@ import type {
   GetRevenueParams,
   HealthStatus,
   RevenueRecord,
+  SyncResult,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -198,3 +202,85 @@ export function useGetRevenue<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Runs the Google Sheets revenue sync job immediately and returns the result
+ * @summary Trigger revenue sync from Google Sheets
+ */
+export const getTriggerRevenueSyncUrl = () => {
+  return `/api/sync/revenue`;
+};
+
+export const triggerRevenueSync = async (
+  options?: RequestInit,
+): Promise<SyncResult> => {
+  return customFetch<SyncResult>(getTriggerRevenueSyncUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getTriggerRevenueSyncMutationOptions = <
+  TError = ErrorType<SyncResult>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerRevenueSync>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof triggerRevenueSync>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["triggerRevenueSync"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof triggerRevenueSync>>,
+    void
+  > = () => {
+    return triggerRevenueSync(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TriggerRevenueSyncMutationResult = NonNullable<
+  Awaited<ReturnType<typeof triggerRevenueSync>>
+>;
+
+export type TriggerRevenueSyncMutationError = ErrorType<SyncResult>;
+
+/**
+ * @summary Trigger revenue sync from Google Sheets
+ */
+export const useTriggerRevenueSync = <
+  TError = ErrorType<SyncResult>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerRevenueSync>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof triggerRevenueSync>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getTriggerRevenueSyncMutationOptions(options));
+};

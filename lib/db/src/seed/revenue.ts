@@ -53,8 +53,8 @@ type InsertRow = {
   year: number;
   month: number;
   amount: string;
-  category: string | null;
-  memo: string | null;
+  category?: string;
+  memo?: string;
 };
 
 async function seed() {
@@ -77,7 +77,6 @@ async function seed() {
           month,
           amount: amount.toString(),
           category: '매출',
-          memo: null,
         });
       }
     }

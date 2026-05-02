@@ -9,3 +9,4 @@
 export * from "./getRevenueParams";
 export * from "./healthStatus";
 export * from "./revenueRecord";
+export * from "./syncResult";
