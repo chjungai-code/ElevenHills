@@ -435,6 +435,19 @@ export default function RevenuePage() {
           </div>
         </div>
       )}
+
+      {/* Data Studio embedded report */}
+      <div className="rounded-xl p-5 md:p-6" style={CARD_STYLE}>
+        <p className="text-sm font-semibold mb-4" style={VALUE_STYLE}>리포트</p>
+        <iframe
+          width="100%"
+          height={450}
+          src="https://datastudio.google.com/embed/reporting/6e12f1aa-711f-4407-a937-e68c95230244/page/mCDxF"
+          frameBorder={0}
+          style={{ border: 0 }}
+          sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        />
+      </div>
     </div>
   )
 }
