@@ -72,7 +72,6 @@ export interface FamilyMember {
   role: string;
   color: string;
 }
-}
 
 export interface RevenueRecord {
   id: string;
