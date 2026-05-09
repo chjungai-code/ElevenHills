@@ -6,6 +6,13 @@ import {
   type FinancialStatementLine,
   useGetCompanies,
 } from '@workspace/api-client-react'
+import {
+  deriveKpis,
+  formatEok,
+  formatRatio,
+  deltaEok,
+  deltaRatio,
+} from '../lib/derive-kpis'
 
 const PERIODS = ['월간', '분기', '연간', 'LTM'] as const
 type Period = typeof PERIODS[number]
@@ -90,7 +97,7 @@ function Badge({ type, children }: { type: 'port' | 'income' | 'traffic' | 'fin'
 }
 
 function KpiCard({
-  stripe, badgeType, badge, name, en, val, delta, deltaUp, note, reit,
+  stripe, badgeType, badge, name, en, val, delta, deltaUp, note, reit, footnote,
 }: {
   stripe: string
   badgeType: 'port' | 'income' | 'traffic' | 'fin'
@@ -102,6 +109,7 @@ function KpiCard({
   deltaUp?: boolean
   note: string
   reit: string
+  footnote?: string
 }) {
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 15px 14px', position: 'relative', overflow: 'hidden' }}>
@@ -116,6 +124,9 @@ function KpiCard({
         {delta ? `${deltaUp !== false ? '↑' : '↓'} ${delta}` : '\u00A0'}
       </div>
       <div style={{ fontSize: 10, color: C.muted, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.faint}`, lineHeight: 1.55 }}>{note}</div>
+      {footnote && (
+        <div style={{ fontSize: 9.5, color: '#6a6a80', marginTop: 4, lineHeight: 1.5, fontStyle: 'italic' }}>{footnote}</div>
+      )}
       <div style={{ fontSize: 9.5, color: C.gold, marginTop: 4, fontWeight: 500 }}>★ {reit}</div>
     </div>
   )
@@ -303,6 +314,22 @@ export default function ReportsPage() {
   const income = financials?.income_statement ?? null
   const balance = financials?.balance_sheet ?? null
 
+  const kpis = useMemo(
+    () => deriveKpis(income, balance),
+    [income, balance],
+  )
+  const showKpis = !isPortfolio && !isLoading
+
+  const griDelta = showKpis ? deltaEok(kpis.gri.current, kpis.gri.prior) : null
+  const noiDelta = showKpis ? deltaEok(kpis.noi.current, kpis.noi.prior) : null
+  const ffoDelta = showKpis ? deltaEok(kpis.ffo.current, kpis.ffo.prior) : null
+  const ndeDelta = showKpis ? deltaRatio(kpis.netDebtEbitda.current, kpis.netDebtEbitda.prior) : null
+
+  const griVal = showKpis ? formatEok(kpis.gri.current) : '—억원'
+  const noiVal = showKpis ? formatEok(kpis.noi.current) : '—억원'
+  const ffoVal = showKpis ? formatEok(kpis.ffo.current) : '—억원'
+  const ndeVal = showKpis ? formatRatio(kpis.netDebtEbitda.current) : '— 배'
+
   return (
     <div style={{ maxWidth: 1100 }}>
 
@@ -394,13 +421,13 @@ export default function ReportsPage() {
       <TierBar num={1} title="핵심 KPI" desc={`이사회 보고·주주 보고서용 — FY${fiscalYear} 기준`} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }} className="kpi-grid-t1">
         <KpiCard stripe={C.accent} badgeType="port" badge="포트폴리오" name="포트폴리오 임대율" en="Portfolio Occupancy Rate" val="—%" delta="" note="전체 임대가능면적(GLA) 중 임대된 비율. 리테일 임대사업의 최우선 지표." reit="REIT 공시 핵심 지표" />
-        <KpiCard stripe={C.blue} badgeType="income" badge="임대수익" name="총 임대수익 (GRI)" en="Gross Rental Income" val="—억원" delta="" note="청구된 임대료 총액. 임대사업 손익의 최상단 매출 항목." reit="REIT 공시 핵심 지표" />
-        <KpiCard stripe={C.blue} badgeType="income" badge="임대수익" name="순영업이익 (NOI)" en="Net Operating Income" val="—억원" delta="" note="GRI에서 운영비용 차감. 모든 부동산 투자자가 주시하는 핵심 수익성 지표." reit="REIT FFO 산출의 출발점" />
-        <KpiCard stripe={C.purple} badgeType="fin" badge="재무건전성" name="사업운영수익 (FFO)" en="Funds From Operations" val="—억원" delta="" note="당기순이익에 감가상각비를 더하고 자산매각수익을 차감한 포트폴리오의 실질 현금창출능력." reit="REIT 배당 재원 핵심 지표" />
+        <KpiCard stripe={C.blue} badgeType="income" badge="임대수익" name="총 임대수익 (GRI)" en="Gross Rental Income" val={griVal} delta={griDelta?.text ?? ''} deltaUp={griDelta?.up} note="청구된 임대료 총액. 임대사업 손익의 최상단 매출 항목." reit="REIT 공시 핵심 지표" />
+        <KpiCard stripe={C.blue} badgeType="income" badge="임대수익" name="순영업이익 (NOI)" en="Net Operating Income" val={noiVal} delta={noiDelta?.text ?? ''} deltaUp={noiDelta?.up} note="GRI에서 운영비용 차감. 모든 부동산 투자자가 주시하는 핵심 수익성 지표." reit="REIT FFO 산출의 출발점" footnote="사용 항목: 임대료수입 − (수선비 + 세금과공과금 + 보험료)" />
+        <KpiCard stripe={C.purple} badgeType="fin" badge="재무건전성" name="사업운영수익 (FFO)" en="Funds From Operations" val={ffoVal} delta={ffoDelta?.text ?? ''} deltaUp={ffoDelta?.up} note="당기순이익에 감가상각비를 더하고 자산매각수익을 차감한 포트폴리오의 실질 현금창출능력." reit="REIT 배당 재원 핵심 지표" />
         <KpiCard stripe={C.accent} badgeType="port" badge="포트폴리오" name="가중평균 잔여 임대기간 (WALE)" en="Weighted Avg. Lease Expiry" val="— 년" delta="" note="수익의 가시성 지표. WALE이 길수록 안정적인 미래 임대수익을 의미." reit="REIT 투자자 필수 확인 지표" />
         <KpiCard stripe={C.purple} badgeType="fin" badge="재무건전성" name="순자산가치 (NAV)" en="Net Asset Value" val="—억원" delta="" note="보유 부동산의 시장가치 총액에서 총부채를 차감한 포트폴리오의 순투자가치." reit="REIT 주가 및 기업가치 평가 기준" />
         <KpiCard stripe={C.green} badgeType="traffic" badge="집객·임차인" name="임차인 평당 매출" en="Tenant Sales per sqm" val="—만원" delta="" note="임차인의 리테일 생산성. 임대 갱신 가능성과 임대료 인상 여력의 예측 지표." reit="리테일 REIT 핵심 모니터링 항목" />
-        <KpiCard stripe={C.purple} badgeType="fin" badge="재무건전성" name="순부채 / EBITDA" en="Net Debt / EBITDA" val="— 배" delta="" note="레버리지 비율. 금융기관과 주주가 리스크 지표로 가장 먼저 확인하는 수치." reit="REIT 신용등급 핵심 기준" />
+        <KpiCard stripe={C.purple} badgeType="fin" badge="재무건전성" name="순부채 / EBITDA" en="Net Debt / EBITDA" val={ndeVal} delta={ndeDelta?.text ?? ''} deltaUp={ndeDelta?.up} note="레버리지 비율. 금융기관과 주주가 리스크 지표로 가장 먼저 확인하는 수치." reit="REIT 신용등급 핵심 기준" footnote="단기차입금 시드 데이터 부재로 장기차입금 변형(장기차입금·유동성장기차입금·주.임.종 장기차입금)만 합산." />
       </div>
 
       {/* Statement dropdown panel */}
