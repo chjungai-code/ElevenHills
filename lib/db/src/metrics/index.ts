@@ -2,6 +2,7 @@ import { sql, and, eq, gte, lte, inArray, type SQL, type SQLWrapper } from "driz
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db } from "../index";
 import { revenueTable } from "../schema/revenue";
+import { kpiObservationTable } from "../schema/kpi";
 
 // ---------------------------------------------------------------------------
 // Public types — these are mirrored in lib/api-spec/openapi.yaml as schemas.
@@ -255,10 +256,7 @@ export async function executeQuery(req: QueryRequest): Promise<QueryResponse> {
     throw new QueryError(400, "QueryRequest body must be an object");
   }
   if (req.dataset === "kpi") {
-    throw new QueryError(
-      501,
-      "Dataset 'kpi' not yet available — kpi_observation table has not been migrated.",
-    );
+    return await executeKpiQuery(req);
   }
   if (req.dataset !== "revenue") {
     throw new QueryError(400, `Unknown dataset: ${String(req.dataset)}`);
@@ -423,6 +421,198 @@ export async function executeQuery(req: QueryRequest): Promise<QueryResponse> {
   if (groupBy.length === 0 && rows.length === 0) {
     const empty: Record<string, unknown> = {};
     for (const m of wantedMetrics) empty[m] = m === "total_revenue" ? 0 : null;
+    rows.push(empty);
+  }
+
+  const columns: ColumnMeta[] = [
+    ...groupBy.map((g) => ({ key: g, label_ko: GROUP_LABELS[g] ?? g })),
+    ...wantedMetrics.map((m) => {
+      const def = METRICS.find((x) => x.code === m)!;
+      return {
+        key: def.code,
+        label_ko: def.label_ko,
+        format: def.format,
+        unit: def.unit,
+      };
+    }),
+  ];
+
+  return {
+    columns,
+    rows: rows as Array<Record<string, string | number | null>>,
+    meta: { generated_at: new Date().toISOString(), cache_hit: false },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// KPI dataset executor
+// ---------------------------------------------------------------------------
+
+const KPI_GROUP_COLS: Record<string, PgColumn | SQLWrapper | undefined> = {
+  kpi_code: kpiObservationTable.kpi_code,
+  company: kpiObservationTable.company_id,
+  year: sql<number>`extract(year from ${kpiObservationTable.period_start})::int`,
+  month: sql<number>`extract(month from ${kpiObservationTable.period_start})::int`,
+};
+
+const KPI_FILTER_COLS: Record<string, PgColumn | SQLWrapper | undefined> = {
+  kpi_code: kpiObservationTable.kpi_code,
+  company_id: kpiObservationTable.company_id,
+  period_kind: kpiObservationTable.period_kind,
+  year: sql<number>`extract(year from ${kpiObservationTable.period_start})::int`,
+  month: sql<number>`extract(month from ${kpiObservationTable.period_start})::int`,
+};
+
+function buildKpiConditions(opts: {
+  filters?: QueryFilter[];
+  time_range?: TimeRange;
+}): SQL[] {
+  const conds: SQL[] = [];
+  for (const f of opts.filters ?? []) {
+    const col = KPI_FILTER_COLS[f.col];
+    if (!col) {
+      throw new QueryError(400, `Unknown filter column for kpi: ${f.col}`);
+    }
+    switch (f.op) {
+      case "eq":
+        conds.push(eq(col as never, coerceFilterVal(f.col, f.value) as never));
+        break;
+      case "in": {
+        const values = (f.values ?? []).map(
+          (v) => coerceFilterVal(f.col, v) as never,
+        );
+        if (values.length > 0) conds.push(inArray(col as never, values));
+        break;
+      }
+      case "gte":
+        conds.push(gte(col as never, coerceFilterVal(f.col, f.value) as never));
+        break;
+      case "lte":
+        conds.push(lte(col as never, coerceFilterVal(f.col, f.value) as never));
+        break;
+      case "between":
+        if (f.min != null)
+          conds.push(gte(col as never, coerceFilterVal(f.col, f.min) as never));
+        if (f.max != null)
+          conds.push(lte(col as never, coerceFilterVal(f.col, f.max) as never));
+        break;
+      default:
+        throw new QueryError(
+          400,
+          `Unknown filter op: ${String((f as QueryFilter).op)}`,
+        );
+    }
+  }
+  if (opts.time_range) {
+    if (opts.time_range.kind === "year") {
+      conds.push(
+        eq(
+          sql`extract(year from ${kpiObservationTable.period_start})::int`,
+          opts.time_range.year,
+        ),
+      );
+    } else if (opts.time_range.kind === "ytd") {
+      const now = new Date();
+      conds.push(
+        eq(
+          sql`extract(year from ${kpiObservationTable.period_start})::int`,
+          now.getFullYear(),
+        ),
+      );
+      conds.push(
+        lte(
+          sql`extract(month from ${kpiObservationTable.period_start})::int`,
+          now.getMonth() + 1,
+        ),
+      );
+    } else if (opts.time_range.kind === "ltm") {
+      const now = new Date();
+      const cutoff = new Date(
+        now.getFullYear(),
+        now.getMonth() - 11,
+        1,
+      );
+      const cutoffStr = `${cutoff.getFullYear()}-${String(
+        cutoff.getMonth() + 1,
+      ).padStart(2, "0")}-01`;
+      conds.push(gte(kpiObservationTable.period_start, cutoffStr));
+    }
+  }
+  return conds;
+}
+
+async function executeKpiQuery(req: QueryRequest): Promise<QueryResponse> {
+  const wantedMetrics = Array.isArray(req.metrics) ? req.metrics : [];
+  if (wantedMetrics.length === 0) {
+    throw new QueryError(400, "At least one metric is required");
+  }
+  for (const m of wantedMetrics) {
+    const def = METRICS.find((x) => x.code === m);
+    if (!def) throw new QueryError(400, `Unknown metric: ${m}`);
+    if (def.dataset !== "kpi") {
+      throw new QueryError(
+        400,
+        `Metric ${m} belongs to dataset ${def.dataset}, not kpi`,
+      );
+    }
+  }
+
+  const groupBy = req.group_by ?? [];
+  for (const g of groupBy) {
+    if (!KPI_GROUP_COLS[g]) {
+      throw new QueryError(
+        400,
+        `Unsupported group_by '${g}' for dataset 'kpi' (supported: kpi_code, company, year, month)`,
+      );
+    }
+  }
+
+  const conds = buildKpiConditions({
+    filters: req.filters,
+    time_range: req.time_range,
+  });
+
+  const selectObj: Record<string, SQLWrapper | PgColumn> = {};
+  for (const g of groupBy) {
+    selectObj[g] = KPI_GROUP_COLS[g] as SQLWrapper;
+  }
+  if (wantedMetrics.includes("kpi_value")) {
+    selectObj.kpi_value =
+      sql<string>`coalesce(sum(${kpiObservationTable.value}), 0)`.as(
+        "kpi_value",
+      );
+  }
+  if (wantedMetrics.includes("kpi_target")) {
+    selectObj.kpi_target = sql<string | null>`sum(${kpiObservationTable.target})`.as(
+      "kpi_target",
+    );
+  }
+
+  let q = db
+    .select(selectObj as never)
+    .from(kpiObservationTable)
+    .$dynamic();
+  if (conds.length > 0) q = q.where(and(...conds));
+  if (groupBy.length > 0) {
+    const cols = groupBy.map((g) => KPI_GROUP_COLS[g] as SQLWrapper);
+    q = q.groupBy(...(cols as never[])).orderBy(...(cols as never[]));
+  }
+  if (req.limit && req.limit > 0) q = q.limit(req.limit);
+
+  const rows = (await q) as Array<Record<string, unknown>>;
+
+  for (const r of rows) {
+    if ("kpi_value" in r && r.kpi_value != null) {
+      r.kpi_value = parseFloat(String(r.kpi_value));
+    }
+    if ("kpi_target" in r && r.kpi_target != null) {
+      r.kpi_target = parseFloat(String(r.kpi_target));
+    }
+  }
+
+  if (groupBy.length === 0 && rows.length === 0) {
+    const empty: Record<string, unknown> = {};
+    for (const m of wantedMetrics) empty[m] = m === "kpi_value" ? 0 : null;
     rows.push(empty);
   }
 
