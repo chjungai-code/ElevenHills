@@ -14,6 +14,36 @@ export interface SyncResult {
   message: string;
 }
 
+export interface FinancialStatementLine {
+  id: string;
+  sort_order: number;
+  depth: number;
+  section_code?: string | null;
+  account_code?: string | null;
+  account_name_ko: string;
+  amount?: string | null;
+  prior_amount?: string | null;
+  is_subtotal: boolean;
+  parent_line_id?: string | null;
+  children: FinancialStatementLine[];
+}
+
+export interface FinancialStatement {
+  company_id: string;
+  fiscal_year: number;
+  statement_type: string;
+  period_start?: string | null;
+  period_end?: string | null;
+  currency: string;
+  unit: string;
+  lines: FinancialStatementLine[];
+}
+
+export interface FinancialStatementsResponse {
+  income_statement: FinancialStatement | null;
+  balance_sheet: FinancialStatement | null;
+}
+
 export interface RevenueRecord {
   id: string;
   company_id: string;
@@ -145,3 +175,17 @@ export type GetRevenueParams = {
   year?: number;
   month?: number;
 };
+
+export type GetFinancialStatementsParams = {
+  company_id: string;
+  year: number;
+  type?: GetFinancialStatementsType;
+};
+
+export type GetFinancialStatementsType =
+  (typeof GetFinancialStatementsType)[keyof typeof GetFinancialStatementsType];
+
+export const GetFinancialStatementsType = {
+  income_statement: "income_statement",
+  balance_sheet: "balance_sheet",
+} as const;

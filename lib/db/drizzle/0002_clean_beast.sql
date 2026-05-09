@@ -1,0 +1,1 @@
+ALTER TABLE "financial_statement" ADD CONSTRAINT "financial_statement_statement_type_check" CHECK ("financial_statement"."statement_type" IN ('income_statement', 'balance_sheet'));

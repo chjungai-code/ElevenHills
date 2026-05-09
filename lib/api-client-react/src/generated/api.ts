@@ -17,6 +17,8 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  FinancialStatementsResponse,
+  GetFinancialStatementsParams,
   GetRevenueParams,
   HealthStatus,
   MetricDefinition,
@@ -199,6 +201,110 @@ export function useGetRevenue<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetRevenueQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns the income statement and balance sheet (or one if `type` is given) for the specified company and fiscal year, as a hierarchical list of lines.
+ * @summary Fetch financial statements for a company and fiscal year
+ */
+export const getGetFinancialStatementsUrl = (
+  params: GetFinancialStatementsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/financial-statements?${stringifiedParams}`
+    : `/api/financial-statements`;
+};
+
+export const getFinancialStatements = async (
+  params: GetFinancialStatementsParams,
+  options?: RequestInit,
+): Promise<FinancialStatementsResponse> => {
+  return customFetch<FinancialStatementsResponse>(
+    getGetFinancialStatementsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetFinancialStatementsQueryKey = (
+  params?: GetFinancialStatementsParams,
+) => {
+  return [`/api/financial-statements`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetFinancialStatementsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFinancialStatements>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetFinancialStatementsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFinancialStatements>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetFinancialStatementsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFinancialStatements>>
+  > = ({ signal }) =>
+    getFinancialStatements(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFinancialStatements>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFinancialStatementsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFinancialStatements>>
+>;
+export type GetFinancialStatementsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Fetch financial statements for a company and fiscal year
+ */
+
+export function useGetFinancialStatements<
+  TData = Awaited<ReturnType<typeof getFinancialStatements>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetFinancialStatementsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFinancialStatements>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFinancialStatementsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

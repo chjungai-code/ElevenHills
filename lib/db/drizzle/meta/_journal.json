@@ -8,6 +8,20 @@
       "when": 1777686917851,
       "tag": "0000_messy_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778300508321,
+      "tag": "0001_fast_the_captain",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778300787668,
+      "tag": "0002_clean_beast",
+      "breakpoints": true
     }
   ]
 }

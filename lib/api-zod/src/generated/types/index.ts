@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./financialStatement";
+export * from "./financialStatementLine";
+export * from "./financialStatementsResponse";
+export * from "./getFinancialStatementsParams";
+export * from "./getFinancialStatementsType";
 export * from "./getRevenueParams";
 export * from "./healthStatus";
 export * from "./metricDefinition";

@@ -38,6 +38,73 @@ export const GetRevenueResponseItem = zod.object({
 export const GetRevenueResponse = zod.array(GetRevenueResponseItem);
 
 /**
+ * Returns the income statement and balance sheet (or one if `type` is given) for the specified company and fiscal year, as a hierarchical list of lines.
+ * @summary Fetch financial statements for a company and fiscal year
+ */
+export const GetFinancialStatementsQueryParams = zod.object({
+  company_id: zod.coerce.string(),
+  year: zod.coerce.number(),
+  type: zod.enum(["income_statement", "balance_sheet"]).optional(),
+});
+
+export const GetFinancialStatementsResponse = zod.object({
+  income_statement: zod.union([
+    zod.object({
+      company_id: zod.string(),
+      fiscal_year: zod.number(),
+      statement_type: zod.string(),
+      period_start: zod.string().nullish(),
+      period_end: zod.string().nullish(),
+      currency: zod.string(),
+      unit: zod.string(),
+      lines: zod.array(
+        zod.object({
+          id: zod.string(),
+          sort_order: zod.number(),
+          depth: zod.number(),
+          section_code: zod.string().nullish(),
+          account_code: zod.string().nullish(),
+          account_name_ko: zod.string(),
+          amount: zod.string().nullish(),
+          prior_amount: zod.string().nullish(),
+          is_subtotal: zod.boolean(),
+          parent_line_id: zod.string().nullish(),
+          children: zod.array(zod.unknown()),
+        }),
+      ),
+    }),
+    zod.null(),
+  ]),
+  balance_sheet: zod.union([
+    zod.object({
+      company_id: zod.string(),
+      fiscal_year: zod.number(),
+      statement_type: zod.string(),
+      period_start: zod.string().nullish(),
+      period_end: zod.string().nullish(),
+      currency: zod.string(),
+      unit: zod.string(),
+      lines: zod.array(
+        zod.object({
+          id: zod.string(),
+          sort_order: zod.number(),
+          depth: zod.number(),
+          section_code: zod.string().nullish(),
+          account_code: zod.string().nullish(),
+          account_name_ko: zod.string(),
+          amount: zod.string().nullish(),
+          prior_amount: zod.string().nullish(),
+          is_subtotal: zod.boolean(),
+          parent_line_id: zod.string().nullish(),
+          children: zod.array(zod.unknown()),
+        }),
+      ),
+    }),
+    zod.null(),
+  ]),
+});
+
+/**
  * Runs the Google Sheets revenue sync job immediately and returns the result
  * @summary Trigger revenue sync from Google Sheets
  */

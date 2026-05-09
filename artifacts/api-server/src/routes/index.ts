@@ -3,6 +3,7 @@ import healthRouter from "./health";
 import revenueRouter from "./revenue";
 import syncRouter from "./sync";
 import metricsRouter from "./metrics";
+import financialStatementsRouter from "./financial-statements";
 
 const router: IRouter = Router();
 
@@ -10,5 +11,6 @@ router.use(healthRouter);
 router.use(revenueRouter);
 router.use(syncRouter);
 router.use(metricsRouter);
+router.use(financialStatementsRouter);
 
 export default router;

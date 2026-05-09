@@ -16,6 +16,8 @@ tags:
     description: Data sync operations
   - name: metrics
     description: Metric registry and typed query endpoint
+  - name: financial-statements
+    description: Financial statement operations
 paths:
   /healthz:
     get:
@@ -61,6 +63,36 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RevenueRecord"
+  /financial-statements:
+    get:
+      operationId: getFinancialStatements
+      tags: [financial-statements]
+      summary: Fetch financial statements for a company and fiscal year
+      description: Returns the income statement and balance sheet (or one if `type` is given) for the specified company and fiscal year, as a hierarchical list of lines.
+      parameters:
+        - name: company_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [income_statement, balance_sheet]
+      responses:
+        "200":
+          description: Financial statements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialStatementsResponse"
   /sync/revenue:
     post:
       operationId: triggerRevenueSync
@@ -145,6 +177,89 @@ components:
       required:
         - success
         - message
+    FinancialStatementLine:
+      type: object
+      properties:
+        id:
+          type: string
+        sort_order:
+          type: integer
+        depth:
+          type: integer
+        section_code:
+          type: string
+          nullable: true
+        account_code:
+          type: string
+          nullable: true
+        account_name_ko:
+          type: string
+        amount:
+          type: string
+          nullable: true
+        prior_amount:
+          type: string
+          nullable: true
+        is_subtotal:
+          type: boolean
+        parent_line_id:
+          type: string
+          nullable: true
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinancialStatementLine"
+      required:
+        - id
+        - sort_order
+        - depth
+        - account_name_ko
+        - is_subtotal
+        - children
+    FinancialStatement:
+      type: object
+      properties:
+        company_id:
+          type: string
+        fiscal_year:
+          type: integer
+        statement_type:
+          type: string
+        period_start:
+          type: string
+          nullable: true
+        period_end:
+          type: string
+          nullable: true
+        currency:
+          type: string
+        unit:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinancialStatementLine"
+      required:
+        - company_id
+        - fiscal_year
+        - statement_type
+        - currency
+        - unit
+        - lines
+    FinancialStatementsResponse:
+      type: object
+      properties:
+        income_statement:
+          oneOf:
+            - $ref: "#/components/schemas/FinancialStatement"
+            - type: "null"
+        balance_sheet:
+          oneOf:
+            - $ref: "#/components/schemas/FinancialStatement"
+            - type: "null"
+      required:
+        - income_statement
+        - balance_sheet
     RevenueRecord:
       type: object
       properties:
