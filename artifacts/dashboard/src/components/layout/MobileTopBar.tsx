@@ -1,8 +1,10 @@
 import { useLocation } from 'wouter'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { useCurrentUser } from '@/lib/supabase/useCurrentUser'
 
 export default function MobileTopBar() {
   const [, setLocation] = useLocation()
+  const userLabel = useCurrentUser()
 
   async function handleLogout() {
     if (isSupabaseConfigured) {
@@ -36,21 +38,32 @@ export default function MobileTopBar() {
           </span>
         </div>
 
-        <button
-          onClick={handleLogout}
-          aria-label="로그아웃"
-          className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors hover:opacity-70"
-          style={{
-            color: '#6a6a80',
-            border: '1px solid #1e1f2a',
-            background: 'rgba(28, 29, 38, 0.4)',
-          }}
-        >
-          <span className="text-xs">⇥</span>
-          <span className="text-[10px] font-mono tracking-widest uppercase">
-            로그아웃
-          </span>
-        </button>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {userLabel && (
+            <span
+              className="text-[10px] font-mono truncate max-w-[140px]"
+              style={{ color: '#8a8a9a' }}
+              title={userLabel}
+            >
+              {userLabel}
+            </span>
+          )}
+          <button
+            onClick={handleLogout}
+            aria-label="로그아웃"
+            className="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors hover:opacity-70"
+            style={{
+              color: '#6a6a80',
+              border: '1px solid #1e1f2a',
+              background: 'rgba(28, 29, 38, 0.4)',
+            }}
+          >
+            <span className="text-xs">⇥</span>
+            <span className="text-[10px] font-mono tracking-widest uppercase">
+              로그아웃
+            </span>
+          </button>
+        </div>
       </div>
     </header>
   )

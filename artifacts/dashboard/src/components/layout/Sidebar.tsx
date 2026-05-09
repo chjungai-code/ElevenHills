@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'wouter'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { useCurrentUser } from '@/lib/supabase/useCurrentUser'
 
 const NAV = [
   { href: '/',            label: '전체 현황',   icon: '◈' },
@@ -10,6 +11,7 @@ const NAV = [
 
 export default function Sidebar() {
   const [pathname, setLocation] = useLocation()
+  const userLabel = useCurrentUser()
 
   async function handleLogout() {
     if (isSupabaseConfigured) {
@@ -54,15 +56,26 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Logout */}
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-left transition-colors hover:opacity-70"
-        style={{ color: '#6a6a80' }}
-      >
-        <span className="text-xs">⇥</span>
-        로그아웃
-      </button>
+      {/* User + Logout */}
+      <div className="flex flex-col gap-1">
+        {userLabel && (
+          <div
+            className="px-3 pt-2 pb-1 text-[10px] font-mono truncate"
+            style={{ color: '#8a8a9a' }}
+            title={userLabel}
+          >
+            {userLabel}
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-left transition-colors hover:opacity-70"
+          style={{ color: '#6a6a80' }}
+        >
+          <span className="text-xs">⇥</span>
+          로그아웃
+        </button>
+      </div>
     </aside>
   )
 }
