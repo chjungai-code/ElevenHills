@@ -169,6 +169,9 @@ importers:
 
   artifacts/api-server:
     dependencies:
+      '@llamaindex/llama-cloud':
+        specifier: ^2.4.1
+        version: 2.4.1
       '@supabase/supabase-js':
         specifier: ^2.105.1
         version: 2.105.1
@@ -821,6 +824,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@llamaindex/llama-cloud@2.4.1':
+    resolution: {integrity: sha512-O2T4BI94ilvHUjZ8vXfZqzUDdaeH2H9s85/UMfOEEmSesKABFL3HRo0vo6A5eQIiQMF7IKgV/CT7fCqOSQ5B8Q==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -3424,6 +3430,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@llamaindex/llama-cloud@2.4.1': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:

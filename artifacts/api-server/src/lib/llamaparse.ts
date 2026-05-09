@@ -1,13 +1,16 @@
 /**
- * Thin LlamaParse (LlamaCloud) client.
+ * Thin LlamaParse (LlamaCloud) client wrapper.
  *
- * Uploads a single PDF and waits for the markdown result.
- * Docs: https://docs.cloud.llamaindex.ai/llamaparse/api_reference
+ * Uses the official @llamaindex/llama-cloud SDK to upload a single PDF
+ * and return the parsed markdown.
+ *
+ * Flow (per LlamaCloud guideline):
+ *   1. client.files.create({ file, purpose: "parse" })  → file id
+ *   2. client.parsing.parse({ file_id, tier, expand })  → parsed result
+ *   3. return result.markdown_full (fallback to result.markdown.md)
  */
 
-const BASE = process.env.LLAMA_CLOUD_BASE_URL ?? "https://api.cloud.llamaindex.ai";
-const POLL_INTERVAL_MS = 1500;
-const POLL_TIMEOUT_MS = 120_000;
+import LlamaCloud, { toFile, APIError } from "@llamaindex/llama-cloud";
 
 export class LlamaParseError extends Error {
   constructor(
@@ -23,104 +26,89 @@ export function isConfigured(): boolean {
   return Boolean(process.env.LLAMA_CLOUD_API_KEY);
 }
 
-function authHeaders(): Record<string, string> {
-  const key = process.env.LLAMA_CLOUD_API_KEY;
-  if (!key) {
+function getClient(): LlamaCloud {
+  const apiKey = process.env.LLAMA_CLOUD_API_KEY;
+  if (!apiKey) {
     throw new LlamaParseError(
       "LLAMA_CLOUD_API_KEY is not configured on the server.",
       503,
     );
   }
-  return { Authorization: `Bearer ${key}` };
+  // SDK reads LLAMA_CLOUD_BASE_URL automatically; pass apiKey explicitly so
+  // tests / scripts using a different env name still work.
+  return new LlamaCloud({ apiKey });
 }
 
-async function uploadPdf(
-  buffer: Buffer,
-  filename: string,
-): Promise<string> {
-  const form = new FormData();
-  // Korean financial PDFs render best in markdown table mode.
-  form.set("result_type", "markdown");
-  form.set("language", "ko");
-  // node 20+ Blob accepts ArrayBuffer / Uint8Array
-  form.set(
-    "file",
-    new Blob([new Uint8Array(buffer)], { type: "application/pdf" }),
-    filename,
-  );
-
-  const res = await fetch(`${BASE}/api/v1/parsing/upload`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: form,
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new LlamaParseError(
-      `LlamaParse upload failed: HTTP ${res.status} ${res.statusText}${text ? ` — ${text.slice(0, 300)}` : ""}`,
-      res.status,
+function wrapError(err: unknown, prefix: string): LlamaParseError {
+  if (err instanceof APIError) {
+    const detail =
+      err.error && typeof err.error === "object"
+        ? JSON.stringify(err.error).slice(0, 300)
+        : err.message;
+    return new LlamaParseError(
+      `${prefix}: HTTP ${err.status ?? "?"}${detail ? ` — ${detail}` : ""}`,
+      typeof err.status === "number" ? err.status : undefined,
     );
   }
-
-  const json = (await res.json()) as { id?: string };
-  if (!json.id) {
-    throw new LlamaParseError("LlamaParse upload returned no job id");
+  if (err instanceof Error) {
+    return new LlamaParseError(`${prefix}: ${err.message}`);
   }
-  return json.id;
-}
-
-async function pollJob(jobId: string): Promise<void> {
-  const start = Date.now();
-  while (Date.now() - start < POLL_TIMEOUT_MS) {
-    const res = await fetch(
-      `${BASE}/api/v1/parsing/job/${encodeURIComponent(jobId)}`,
-      { headers: authHeaders() },
-    );
-    if (!res.ok) {
-      throw new LlamaParseError(
-        `LlamaParse job status failed: HTTP ${res.status}`,
-        res.status,
-      );
-    }
-    const json = (await res.json()) as { status?: string };
-    const status = (json.status ?? "").toUpperCase();
-    if (status === "SUCCESS") return;
-    if (status === "ERROR" || status === "CANCELLED" || status === "FAILED") {
-      throw new LlamaParseError(`LlamaParse job ${status.toLowerCase()}`);
-    }
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-  }
-  throw new LlamaParseError("LlamaParse job timed out");
-}
-
-async function fetchMarkdown(jobId: string): Promise<string> {
-  const res = await fetch(
-    `${BASE}/api/v1/parsing/job/${encodeURIComponent(jobId)}/result/markdown`,
-    { headers: authHeaders() },
-  );
-  if (!res.ok) {
-    throw new LlamaParseError(
-      `LlamaParse markdown fetch failed: HTTP ${res.status}`,
-      res.status,
-    );
-  }
-  const json = (await res.json()) as { markdown?: string };
-  if (typeof json.markdown !== "string") {
-    throw new LlamaParseError("LlamaParse result missing markdown field");
-  }
-  return json.markdown;
+  return new LlamaParseError(`${prefix}: ${String(err)}`);
 }
 
 /**
  * Convert a PDF buffer to markdown via LlamaParse.
- * Blocks (with bounded poll loop) until the parse job completes.
+ * Blocks until the parse job completes (the SDK polls internally).
  */
 export async function parsePdfToMarkdown(
   buffer: Buffer,
   filename = "statement.pdf",
 ): Promise<string> {
-  const jobId = await uploadPdf(buffer, filename);
-  await pollJob(jobId);
-  return fetchMarkdown(jobId);
+  const client = getClient();
+
+  // 1. Upload the PDF as a "parse" file.
+  const uploadable = await toFile(new Uint8Array(buffer), filename, {
+    type: "application/pdf",
+  });
+  let fileId: string;
+  try {
+    const fileObj = await client.files.create({
+      file: uploadable,
+      purpose: "parse",
+    });
+    fileId = fileObj.id;
+  } catch (err) {
+    throw wrapError(err, "LlamaParse file upload failed");
+  }
+
+  // 2. Kick off the parse job and wait for completion (SDK polls).
+  //    Korean financial PDFs render best with the agentic tier and the
+  //    full-document markdown expansion.
+  let result;
+  try {
+    result = await client.parsing.parse({
+      file_id: fileId,
+      tier: "agentic",
+      version: "latest",
+      expand: ["markdown_full", "markdown"],
+    });
+  } catch (err) {
+    throw wrapError(err, "LlamaParse parse job failed");
+  }
+
+  // 3. Prefer the full-document markdown; fall back to the per-page
+  //    markdown's joined `md` if `markdown_full` is empty.
+  const full = result.markdown_full;
+  if (typeof full === "string" && full.trim().length > 0) {
+    return full;
+  }
+  const pages = result.markdown?.pages;
+  if (Array.isArray(pages) && pages.length > 0) {
+    const joined = pages
+      .map((p) => ("markdown" in p && typeof p.markdown === "string" ? p.markdown : ""))
+      .filter((s) => s.length > 0)
+      .join("\n\n");
+    if (joined.trim().length > 0) return joined;
+  }
+  throw new LlamaParseError("LlamaParse result missing markdown content");
 }

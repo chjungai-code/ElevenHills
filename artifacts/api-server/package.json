@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@llamaindex/llama-cloud": "^2.4.1",
     "@supabase/supabase-js": "^2.105.1",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
