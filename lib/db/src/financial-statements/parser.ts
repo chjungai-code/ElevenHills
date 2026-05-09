@@ -13,9 +13,16 @@ function normalizeName(raw: string): string {
 
 function parseAmount(raw: string): string | null {
   const cleaned = raw.replace(/&nbsp;/g, "").trim();
-  if (cleaned === "" || cleaned === "-") return null;
-  const negative = cleaned.startsWith("△") || cleaned.startsWith("-");
-  const digits = cleaned.replace(/[△,\-\s]/g, "");
+  if (cleaned === "" || cleaned === "-" || cleaned === "–" || cleaned === "—")
+    return null;
+  const parenNegative = /^\(\s*[\d,.\s]+\s*\)$/.test(cleaned);
+  const negative =
+    parenNegative ||
+    cleaned.startsWith("△") ||
+    cleaned.startsWith("▲") ||
+    cleaned.startsWith("-") ||
+    cleaned.startsWith("−");
+  const digits = cleaned.replace(/[△▲(),\-−\s]/g, "");
   if (digits === "") return null;
   if (!/^\d+(\.\d+)?$/.test(digits)) return null;
   return (negative ? "-" : "") + digits;
