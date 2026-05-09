@@ -1,22 +1,17 @@
 import { useState, useMemo } from 'react'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
-} from 'recharts'
-import {
   useGetRevenue,
   useTriggerRevenueSync,
   runQuery,
 } from '@workspace/api-client-react'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { COMPANIES_SEED, COMPANY_IDS } from '@/lib/data/companies'
+import { ChartRenderer, CHART_THEME, type ChartSpec } from '@/components/charts'
 
 const MONTH_LABELS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 
-// Companies that have revenue (exclude the holding company)
 const REVENUE_COMPANIES = COMPANIES_SEED.filter(c => c.id !== COMPANY_IDS.ELEVEN_HILLS)
 
-// Colour palette for companies
 const COMPANY_COLORS: Record<string, string> = {
   [COMPANY_IDS.COD_RETAIL]:     '#c8a96e',
   [COMPANY_IDS.COD_VISION]:     '#7eb8d4',
@@ -28,30 +23,13 @@ const COMPANY_COLORS: Record<string, string> = {
   [COMPANY_IDS.BNF_SPORTS]:     '#c07860',
 }
 
-// Palette for per-store colours (cycles through these)
 const STORE_PALETTE = [
   '#c8a96e','#7eb8d4','#85c49a','#b88ecb','#e07b7b',
   '#f0c060','#60c0c0','#c07860','#a0c0a0','#d4a0b0',
   '#80a8d0','#d0b080','#90d0b0','#c0a0d0','#d09080',
 ]
 
-function formatKRW(value: number): string {
-  if (value >= 100_000_000) return `${(value / 100_000_000).toFixed(1)}억`
-  if (value >= 10_000) return `${Math.round(value / 10_000)}만`
-  return value.toLocaleString()
-}
-
-function formatKRWFull(value: number): string {
-  if (value >= 100_000_000) {
-    return `₩${(value / 100_000_000).toFixed(2)}억`
-  }
-  return `₩${Math.round(value / 10_000).toLocaleString()}만`
-}
-
-const CARD_STYLE = { background: '#13141a', border: '1px solid #272836' }
-const LABEL_STYLE = { color: '#6a6a80' }
-const VALUE_STYLE = { color: '#f4eedd' }
-const GOLD = '#c8a96e'
+const GOLD = CHART_THEME.gold
 
 export default function RevenuePage() {
   const currentYear = new Date().getFullYear()
@@ -78,7 +56,6 @@ export default function RevenuePage() {
 
   const { data: allRows = [], isLoading, isError } = useGetRevenue({ year: selectedYear })
 
-  // Separate combined ("매출") rows from per-store ("매출 - X") rows
   const combinedRows = useMemo(
     () => allRows.filter(r => r.category === '매출'),
     [allRows],
@@ -110,8 +87,6 @@ export default function RevenuePage() {
     return typeof v === 'number' ? v : 0
   }, [totalsQuery])
 
-  // Monthly trend data — aggregated across all companies or filtered by company
-  // Uses combined rows only to avoid double-counting store + total
   const monthlyTrendData = useMemo(() => {
     const source = selectedCompanyId === 'all'
       ? combinedRows
@@ -128,7 +103,6 @@ export default function RevenuePage() {
     }))
   }, [combinedRows, selectedCompanyId])
 
-  // Per-company YTD breakdown (combined rows only)
   const companyBreakdown = useMemo(() => {
     const byCompany: Record<string, number> = {}
     for (const r of combinedRows) {
@@ -139,14 +113,13 @@ export default function RevenuePage() {
       .map(c => ({
         id: c.id,
         name: c.name,
-        short: c.short_name ?? c.name,
         amount: byCompany[c.id] ?? 0,
         color: COMPANY_COLORS[c.id] ?? '#888',
       }))
+      .filter(c => c.amount > 0)
       .sort((a, b) => b.amount - a.amount)
   }, [combinedRows])
 
-  // Per-store breakdown for City of Dreams
   const storeBreakdown = useMemo(() => {
     const byStore: Record<string, number> = {}
     for (const r of storeRows) {
@@ -156,6 +129,7 @@ export default function RevenuePage() {
 
     return Object.entries(byStore)
       .map(([name, amount], i) => ({
+        id: name,
         name,
         amount,
         color: STORE_PALETTE[i % STORE_PALETTE.length],
@@ -163,22 +137,81 @@ export default function RevenuePage() {
       .sort((a, b) => b.amount - a.amount)
   }, [storeRows])
 
-  const storeTotalRevenue = useMemo(
-    () => storeBreakdown.reduce((sum, s) => sum + s.amount, 0),
-    [storeBreakdown],
-  )
-
   const years = [currentYear - 1, currentYear]
+
+  // ── Chart specs ──────────────────────────────────────────────────────────
+  const totalKpi: ChartSpec = {
+    id: 'kpi.totalRevenue',
+    title_ko: `연간 총 매출 (${selectedYear})`,
+    viz: { kind: 'kpi', format: 'krwFull', accent: GOLD },
+    data: [{ value: totalRevenue }],
+  }
+
+  const companyCountKpi: ChartSpec = {
+    id: 'kpi.companyCount',
+    title_ko: '회사 수',
+    viz: { kind: 'kpi', format: (v) => `${v}개` },
+    data: [{ value: companyBreakdown.length }],
+  }
+
+  const monthlyAvgKpi: ChartSpec = {
+    id: 'kpi.monthlyAverage',
+    title_ko: '월 평균 매출',
+    viz: { kind: 'kpi', format: 'krwFull' },
+    data: [{ value: totalRevenue / 12 }],
+  }
+
+  const monthlyTrendSpec: ChartSpec = {
+    id: 'chart.monthlyTrend',
+    title_ko: '월별 매출 추이',
+    viz: {
+      kind: 'bar',
+      xKey: 'month',
+      yFormat: 'krw',
+      series: [{ key: 'amount', label: '매출', color: GOLD }],
+    },
+    data: monthlyTrendData,
+  }
+
+  const companyTableSpec: ChartSpec = {
+    id: 'table.companyBreakdown',
+    title_ko: '회사별 연간 매출',
+    viz: {
+      kind: 'table',
+      totalRow: true,
+      emptyMessage: '해당 연도의 매출 데이터가 없습니다.',
+      columns: [
+        { key: 'name', label: '회사', colorKey: 'color' },
+        { key: 'amount', label: '연간 매출', align: 'right', format: 'krwFull' },
+        { key: 'amount', label: '비중', align: 'right', percentOf: 'amount', colorKey: 'color' },
+      ],
+    },
+    data: companyBreakdown,
+  }
+
+  const storeTableSpec: ChartSpec = {
+    id: 'table.storeBreakdown',
+    viz: {
+      kind: 'table',
+      totalRow: true,
+      columns: [
+        { key: 'name', label: '매장', colorKey: 'color' },
+        { key: 'amount', label: '누적 매출', align: 'right', format: 'krwFull' },
+        { key: 'amount', label: '비중', align: 'right', percentOf: 'amount', colorKey: 'color' },
+      ],
+    },
+    data: storeBreakdown,
+  }
 
   return (
     <div className="max-w-5xl space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="border-l-2 pl-4" style={{ borderColor: GOLD }}>
-          <p className="text-[11px] font-mono tracking-widest uppercase mb-1" style={LABEL_STYLE}>
+          <p className="text-[11px] font-mono tracking-widest uppercase mb-1" style={{ color: CHART_THEME.textLabel }}>
             Revenue
           </p>
-          <h1 className="text-2xl font-bold" style={VALUE_STYLE}>매출 현황</h1>
+          <h1 className="text-2xl font-bold" style={{ color: CHART_THEME.text }}>매출 현황</h1>
         </div>
         <div className="flex flex-col items-end gap-2 pt-1">
           <button
@@ -198,7 +231,7 @@ export default function RevenuePage() {
           {syncMessage && (
             <p
               className="text-xs font-mono max-w-xs text-right"
-              style={{ color: syncMessage.ok ? '#85c49a' : '#e07b7b' }}
+              style={{ color: syncMessage.ok ? CHART_THEME.success : CHART_THEME.danger }}
             >
               {syncMessage.ok ? '✓ ' : '✗ '}{syncMessage.text}
             </p>
@@ -224,46 +257,23 @@ export default function RevenuePage() {
         ))}
       </div>
 
-      {/* Summary bar */}
+      {/* Summary KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className="rounded-xl p-4 md:p-5 col-span-2 md:col-span-1" style={CARD_STYLE}>
-          <p className="text-[10px] font-mono tracking-widest uppercase mb-2" style={LABEL_STYLE}>
-            연간 총 매출 ({selectedYear})
-          </p>
-          {isTotalsLoading ? (
-            <p className="text-xl font-bold animate-pulse" style={{ color: '#6a6a80' }}>—</p>
-          ) : (
-            <p className="text-xl md:text-2xl font-bold" style={{ color: GOLD }}>
-              {formatKRWFull(totalRevenue)}
-            </p>
-          )}
-        </div>
-        <div className="rounded-xl p-4 md:p-5" style={CARD_STYLE}>
-          <p className="text-[10px] font-mono tracking-widest uppercase mb-2" style={LABEL_STYLE}>
-            회사 수
-          </p>
-          <p className="text-xl md:text-2xl font-bold" style={VALUE_STYLE}>
-            {companyBreakdown.filter(c => c.amount > 0).length}개
-          </p>
-        </div>
-        <div className="rounded-xl p-4 md:p-5" style={CARD_STYLE}>
-          <p className="text-[10px] font-mono tracking-widest uppercase mb-2" style={LABEL_STYLE}>
-            월 평균 매출
-          </p>
-          {isTotalsLoading ? (
-            <p className="text-xl font-bold animate-pulse" style={{ color: '#6a6a80' }}>—</p>
-          ) : (
-            <p className="text-xl md:text-2xl font-bold" style={VALUE_STYLE}>
-              {formatKRWFull(totalRevenue / 12)}
-            </p>
-          )}
-        </div>
+        <ChartRenderer
+          spec={totalKpi}
+          isLoading={isTotalsLoading}
+          className="col-span-2 md:col-span-1"
+        />
+        <ChartRenderer spec={companyCountKpi} />
+        <ChartRenderer spec={monthlyAvgKpi} isLoading={isTotalsLoading} />
       </div>
 
       {/* Monthly trend chart */}
-      <div className="rounded-xl p-5 md:p-6" style={CARD_STYLE}>
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-          <p className="text-sm font-semibold" style={VALUE_STYLE}>월별 매출 추이</p>
+      <ChartRenderer
+        spec={monthlyTrendSpec}
+        isLoading={isLoading}
+        isError={isError}
+        headerRight={
           <select
             value={selectedCompanyId}
             onChange={e => setSelectedCompanyId(e.target.value)}
@@ -275,188 +285,31 @@ export default function RevenuePage() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
-        </div>
-
-        {isLoading ? (
-          <div className="h-56 flex items-center justify-center">
-            <p className="text-xs font-mono tracking-widest uppercase animate-pulse" style={LABEL_STYLE}>
-              데이터 로딩 중…
-            </p>
-          </div>
-        ) : isError ? (
-          <div className="h-56 flex items-center justify-center">
-            <p className="text-xs" style={{ color: '#e07b7b' }}>데이터를 불러오지 못했습니다.</p>
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={monthlyTrendData} margin={{ top: 0, right: 8, left: 8, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#272836" vertical={false} />
-              <XAxis
-                dataKey="month"
-                tick={{ fill: '#6a6a80', fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tickFormatter={formatKRW}
-                tick={{ fill: '#6a6a80', fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                width={60}
-              />
-              <Tooltip
-                contentStyle={{ background: '#1a1b24', border: '1px solid #272836', borderRadius: 8 }}
-                labelStyle={{ color: '#9a9ab0', fontSize: 12 }}
-                itemStyle={{ color: '#f4eedd' }}
-                formatter={(v: number) => [formatKRWFull(v), '매출']}
-              />
-              <Bar dataKey="amount" fill={GOLD} radius={[4, 4, 0, 0]} maxBarSize={48} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </div>
+        }
+      />
 
       {/* Per-company breakdown table */}
-      <div className="rounded-xl p-5 md:p-6" style={CARD_STYLE}>
-        <p className="text-sm font-semibold mb-4" style={VALUE_STYLE}>회사별 연간 매출</p>
-
-        {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-10 rounded-lg animate-pulse" style={{ background: '#1a1b24' }} />
-            ))}
-          </div>
-        ) : companyBreakdown.filter(c => c.amount > 0).length === 0 ? (
-          <p className="text-sm text-center py-8" style={LABEL_STYLE}>
-            해당 연도의 매출 데이터가 없습니다.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {/* Header row */}
-            <div className="grid grid-cols-12 gap-2 pb-2" style={{ borderBottom: '1px solid #272836' }}>
-              <span className="col-span-5 text-[10px] font-mono tracking-widest uppercase" style={LABEL_STYLE}>
-                회사
-              </span>
-              <span className="col-span-4 text-[10px] font-mono tracking-widest uppercase text-right" style={LABEL_STYLE}>
-                연간 매출
-              </span>
-              <span className="col-span-3 text-[10px] font-mono tracking-widest uppercase text-right" style={LABEL_STYLE}>
-                비중
-              </span>
-            </div>
-            {companyBreakdown.map(c => {
-              if (c.amount === 0) return null
-              const pct = totalRevenue > 0 ? (c.amount / totalRevenue) * 100 : 0
-              return (
-                <div key={c.id} className="grid grid-cols-12 gap-2 py-2 items-center rounded-lg px-2 -mx-2 hover:bg-white/[0.02] transition-colors">
-                  <div className="col-span-5 flex items-center gap-2">
-                    <span
-                      className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: c.color }}
-                    />
-                    <span className="text-sm truncate" style={VALUE_STYLE}>{c.name}</span>
-                  </div>
-                  <div className="col-span-4 text-right">
-                    <span className="text-sm font-mono" style={VALUE_STYLE}>
-                      {formatKRWFull(c.amount)}
-                    </span>
-                  </div>
-                  <div className="col-span-3 text-right">
-                    <span className="text-sm font-mono" style={{ color: c.color }}>
-                      {pct.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
-            {/* Total row */}
-            <div
-              className="grid grid-cols-12 gap-2 py-2 items-center rounded-lg px-2 -mx-2 mt-1"
-              style={{ borderTop: '1px solid #272836' }}
-            >
-              <span className="col-span-5 text-sm font-semibold" style={{ color: GOLD }}>합계</span>
-              <span className="col-span-4 text-right text-sm font-semibold font-mono" style={{ color: GOLD }}>
-                {formatKRWFull(totalRevenue)}
-              </span>
-              <span className="col-span-3 text-right text-sm font-mono" style={{ color: GOLD }}>100%</span>
-            </div>
-          </div>
-        )}
-      </div>
+      <ChartRenderer spec={companyTableSpec} isLoading={isLoading} />
 
       {/* City of Dreams per-store breakdown */}
       {!isLoading && storeBreakdown.length > 0 && (
-        <div className="rounded-xl p-5 md:p-6" style={CARD_STYLE}>
+        <div className="rounded-xl p-5 md:p-6" style={CHART_THEME.card}>
           <div className="flex items-center gap-3 mb-4">
             <span
               className="inline-block w-2 h-2 rounded-full flex-shrink-0"
               style={{ background: COMPANY_COLORS[COMPANY_IDS.CITY_OF_DREAMS] }}
             />
-            <p className="text-sm font-semibold" style={VALUE_STYLE}>
+            <p className="text-sm font-semibold" style={{ color: CHART_THEME.text }}>
               씨티오브드림스 — 매장별 매출 ({selectedYear})
             </p>
           </div>
-
-          <div className="space-y-2">
-            {/* Header row */}
-            <div className="grid grid-cols-12 gap-2 pb-2" style={{ borderBottom: '1px solid #272836' }}>
-              <span className="col-span-5 text-[10px] font-mono tracking-widest uppercase" style={LABEL_STYLE}>
-                매장
-              </span>
-              <span className="col-span-4 text-[10px] font-mono tracking-widest uppercase text-right" style={LABEL_STYLE}>
-                누적 매출
-              </span>
-              <span className="col-span-3 text-[10px] font-mono tracking-widest uppercase text-right" style={LABEL_STYLE}>
-                비중
-              </span>
-            </div>
-
-            {storeBreakdown.map((store) => {
-              const pct = storeTotalRevenue > 0 ? (store.amount / storeTotalRevenue) * 100 : 0
-              return (
-                <div
-                  key={store.name}
-                  className="grid grid-cols-12 gap-2 py-2 items-center rounded-lg px-2 -mx-2 hover:bg-white/[0.02] transition-colors"
-                >
-                  <div className="col-span-5 flex items-center gap-2">
-                    <span
-                      className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: store.color }}
-                    />
-                    <span className="text-sm truncate" style={VALUE_STYLE}>{store.name}</span>
-                  </div>
-                  <div className="col-span-4 text-right">
-                    <span className="text-sm font-mono" style={VALUE_STYLE}>
-                      {formatKRWFull(store.amount)}
-                    </span>
-                  </div>
-                  <div className="col-span-3 text-right">
-                    <span className="text-sm font-mono" style={{ color: store.color }}>
-                      {pct.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
-
-            {/* Total row */}
-            <div
-              className="grid grid-cols-12 gap-2 py-2 items-center rounded-lg px-2 -mx-2 mt-1"
-              style={{ borderTop: '1px solid #272836' }}
-            >
-              <span className="col-span-5 text-sm font-semibold" style={{ color: GOLD }}>합계</span>
-              <span className="col-span-4 text-right text-sm font-semibold font-mono" style={{ color: GOLD }}>
-                {formatKRWFull(storeTotalRevenue)}
-              </span>
-              <span className="col-span-3 text-right text-sm font-mono" style={{ color: GOLD }}>100%</span>
-            </div>
-          </div>
+          <ChartRenderer spec={storeTableSpec} card={false} />
         </div>
       )}
 
       {/* Data Studio embedded report */}
-      <div className="rounded-xl p-5 md:p-6" style={CARD_STYLE}>
-        <p className="text-sm font-semibold mb-4" style={VALUE_STYLE}>리포트</p>
+      <div className="rounded-xl p-5 md:p-6" style={CHART_THEME.card}>
+        <p className="text-sm font-semibold mb-4" style={{ color: CHART_THEME.text }}>리포트</p>
         <iframe
           width="100%"
           height={450}
