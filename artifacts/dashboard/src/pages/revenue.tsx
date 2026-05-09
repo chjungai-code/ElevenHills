@@ -3,8 +3,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { useGetRevenue, useTriggerRevenueSync } from '@workspace/api-client-react'
-import { useQueryClient } from '@tanstack/react-query'
+import {
+  useGetRevenue,
+  useTriggerRevenueSync,
+  runQuery,
+} from '@workspace/api-client-react'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { COMPANIES_SEED, COMPANY_IDS } from '@/lib/data/companies'
 
 const MONTH_LABELS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
@@ -81,16 +85,30 @@ export default function RevenuePage() {
   )
   const storeRows = useMemo(
     () => allRows.filter(
-      r => r.company_id === COMPANY_IDS.CITY_OF_DREAMS && r.category.startsWith('매출 - '),
+      r => r.company_id === COMPANY_IDS.CITY_OF_DREAMS && (r.category ?? '').startsWith('매출 - '),
     ),
     [allRows],
   )
 
-  // Total revenue for the selected year across all companies (combined rows only)
-  const totalRevenue = useMemo(
-    () => combinedRows.reduce((sum, r) => sum + parseFloat(r.amount), 0),
-    [combinedRows],
-  )
+  // Total revenue for the selected year — computed by the server-side metric
+  // registry (POST /api/query) instead of a client-side useMemo aggregation.
+  // This ensures every page that asks for "total_revenue" gets the same number.
+  const {
+    data: totalsQuery,
+    isLoading: isTotalsLoading,
+  } = useQuery({
+    queryKey: ['/api/query', 'total_revenue', selectedYear],
+    queryFn: () =>
+      runQuery({
+        dataset: 'revenue',
+        metrics: ['total_revenue'],
+        time_range: { kind: 'year', year: selectedYear },
+      }),
+  })
+  const totalRevenue = useMemo(() => {
+    const v = totalsQuery?.rows?.[0]?.total_revenue
+    return typeof v === 'number' ? v : 0
+  }, [totalsQuery])
 
   // Monthly trend data — aggregated across all companies or filtered by company
   // Uses combined rows only to avoid double-counting store + total
@@ -132,7 +150,7 @@ export default function RevenuePage() {
   const storeBreakdown = useMemo(() => {
     const byStore: Record<string, number> = {}
     for (const r of storeRows) {
-      const storeName = r.category.replace(/^매출 - /, '')
+      const storeName = (r.category ?? '').replace(/^매출 - /, '')
       byStore[storeName] = (byStore[storeName] ?? 0) + parseFloat(r.amount)
     }
 
@@ -212,7 +230,7 @@ export default function RevenuePage() {
           <p className="text-[10px] font-mono tracking-widest uppercase mb-2" style={LABEL_STYLE}>
             연간 총 매출 ({selectedYear})
           </p>
-          {isLoading ? (
+          {isTotalsLoading ? (
             <p className="text-xl font-bold animate-pulse" style={{ color: '#6a6a80' }}>—</p>
           ) : (
             <p className="text-xl md:text-2xl font-bold" style={{ color: GOLD }}>
@@ -232,7 +250,7 @@ export default function RevenuePage() {
           <p className="text-[10px] font-mono tracking-widest uppercase mb-2" style={LABEL_STYLE}>
             월 평균 매출
           </p>
-          {isLoading ? (
+          {isTotalsLoading ? (
             <p className="text-xl font-bold animate-pulse" style={{ color: '#6a6a80' }}>—</p>
           ) : (
             <p className="text-xl md:text-2xl font-bold" style={VALUE_STYLE}>

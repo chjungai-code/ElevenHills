@@ -19,12 +19,16 @@ import type {
 import type {
   GetRevenueParams,
   HealthStatus,
+  MetricDefinition,
+  QueryError,
+  QueryRequest,
+  QueryResponse,
   RevenueRecord,
   SyncResult,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -283,4 +287,167 @@ export const useTriggerRevenueSync = <
   TContext
 > => {
   return useMutation(getTriggerRevenueSyncMutationOptions(options));
+};
+
+/**
+ * Returns the server-side metric registry so the frontend can render labels, units, and formats without duplicating them.
+ * @summary List metric definitions
+ */
+export const getListMetricsUrl = () => {
+  return `/api/metrics`;
+};
+
+export const listMetrics = async (
+  options?: RequestInit,
+): Promise<MetricDefinition[]> => {
+  return customFetch<MetricDefinition[]>(getListMetricsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMetricsQueryKey = () => {
+  return [`/api/metrics`] as const;
+};
+
+export const getListMetricsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMetrics>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMetrics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMetricsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMetrics>>> = ({
+    signal,
+  }) => listMetrics({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMetrics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMetricsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMetrics>>
+>;
+export type ListMetricsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List metric definitions
+ */
+
+export function useListMetrics<
+  TData = Awaited<ReturnType<typeof listMetrics>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMetrics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMetricsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Resolves the requested metrics against the server-side registry and returns rows + column metadata. Replaces ad-hoc client-side aggregation.
+ * @summary Run a typed metric query
+ */
+export const getRunQueryUrl = () => {
+  return `/api/query`;
+};
+
+export const runQuery = async (
+  queryRequest: QueryRequest,
+  options?: RequestInit,
+): Promise<QueryResponse> => {
+  return customFetch<QueryResponse>(getRunQueryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(queryRequest),
+  });
+};
+
+export const getRunQueryMutationOptions = <
+  TError = ErrorType<QueryError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runQuery>>,
+    TError,
+    { data: BodyType<QueryRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof runQuery>>,
+  TError,
+  { data: BodyType<QueryRequest> },
+  TContext
+> => {
+  const mutationKey = ["runQuery"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof runQuery>>,
+    { data: BodyType<QueryRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return runQuery(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RunQueryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof runQuery>>
+>;
+export type RunQueryMutationBody = BodyType<QueryRequest>;
+export type RunQueryMutationError = ErrorType<QueryError>;
+
+/**
+ * @summary Run a typed metric query
+ */
+export const useRunQuery = <
+  TError = ErrorType<QueryError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runQuery>>,
+    TError,
+    { data: BodyType<QueryRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof runQuery>>,
+  TError,
+  { data: BodyType<QueryRequest> },
+  TContext
+> => {
+  return useMutation(getRunQueryMutationOptions(options));
 };

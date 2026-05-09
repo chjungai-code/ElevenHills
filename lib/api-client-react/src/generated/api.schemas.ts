@@ -25,6 +25,121 @@ export interface RevenueRecord {
   created_at: string;
 }
 
+export type MetricDefinitionUnit =
+  (typeof MetricDefinitionUnit)[keyof typeof MetricDefinitionUnit];
+
+export const MetricDefinitionUnit = {
+  KRW: "KRW",
+  PCT: "PCT",
+  YEARS: "YEARS",
+  COUNT: "COUNT",
+} as const;
+
+export type MetricDefinitionDataset =
+  (typeof MetricDefinitionDataset)[keyof typeof MetricDefinitionDataset];
+
+export const MetricDefinitionDataset = {
+  revenue: "revenue",
+  kpi: "kpi",
+} as const;
+
+export interface MetricDefinition {
+  code: string;
+  label_ko: string;
+  unit: MetricDefinitionUnit;
+  format: string;
+  dataset: MetricDefinitionDataset;
+  description?: string | null;
+}
+
+export type QueryFilterOp = (typeof QueryFilterOp)[keyof typeof QueryFilterOp];
+
+export const QueryFilterOp = {
+  eq: "eq",
+  in: "in",
+  between: "between",
+  gte: "gte",
+  lte: "lte",
+} as const;
+
+/**
+ * One filter clause. Use 'value' for eq/gte/lte, 'values' for in, and min/max for between.
+ */
+export interface QueryFilter {
+  col: string;
+  op: QueryFilterOp;
+  value?: string | number | null;
+  values?: string[] | null;
+  min?: number | null;
+  max?: number | null;
+}
+
+export type TimeRangeKind = (typeof TimeRangeKind)[keyof typeof TimeRangeKind];
+
+export const TimeRangeKind = {
+  ltm: "ltm",
+  year: "year",
+  ytd: "ytd",
+} as const;
+
+export interface TimeRange {
+  kind: TimeRangeKind;
+  year?: number | null;
+}
+
+export type QueryRequestDataset =
+  (typeof QueryRequestDataset)[keyof typeof QueryRequestDataset];
+
+export const QueryRequestDataset = {
+  revenue: "revenue",
+  kpi: "kpi",
+} as const;
+
+export type QueryRequestGroupByItem =
+  (typeof QueryRequestGroupByItem)[keyof typeof QueryRequestGroupByItem];
+
+export const QueryRequestGroupByItem = {
+  company: "company",
+  store: "store",
+  month: "month",
+  quarter: "quarter",
+  year: "year",
+  kpi_code: "kpi_code",
+} as const;
+
+export interface QueryRequest {
+  dataset: QueryRequestDataset;
+  metrics: string[];
+  group_by?: QueryRequestGroupByItem[] | null;
+  filters?: QueryFilter[] | null;
+  time_range?: TimeRange | null;
+  limit?: number | null;
+}
+
+export interface QueryColumn {
+  key: string;
+  label_ko: string;
+  format?: string | null;
+  unit?: string | null;
+}
+
+export interface QueryMeta {
+  generated_at: string;
+  cache_hit: boolean;
+}
+
+export type QueryResponseRowsItem = { [key: string]: unknown };
+
+export interface QueryResponse {
+  columns: QueryColumn[];
+  rows: QueryResponseRowsItem[];
+  meta: QueryMeta;
+}
+
+export interface QueryError {
+  error: string;
+}
+
 export type GetRevenueParams = {
   company_id?: string;
   year?: number;

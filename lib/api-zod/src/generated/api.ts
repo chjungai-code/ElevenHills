@@ -45,3 +45,70 @@ export const TriggerRevenueSyncResponse = zod.object({
   success: zod.boolean(),
   message: zod.string(),
 });
+
+/**
+ * Returns the server-side metric registry so the frontend can render labels, units, and formats without duplicating them.
+ * @summary List metric definitions
+ */
+export const ListMetricsResponseItem = zod.object({
+  code: zod.string(),
+  label_ko: zod.string(),
+  unit: zod.enum(["KRW", "PCT", "YEARS", "COUNT"]),
+  format: zod.string(),
+  dataset: zod.enum(["revenue", "kpi"]),
+  description: zod.string().nullish(),
+});
+export const ListMetricsResponse = zod.array(ListMetricsResponseItem);
+
+/**
+ * Resolves the requested metrics against the server-side registry and returns rows + column metadata. Replaces ad-hoc client-side aggregation.
+ * @summary Run a typed metric query
+ */
+export const RunQueryBody = zod.object({
+  dataset: zod.enum(["revenue", "kpi"]),
+  metrics: zod.array(zod.string()),
+  group_by: zod
+    .array(
+      zod.enum(["company", "store", "month", "quarter", "year", "kpi_code"]),
+    )
+    .nullish(),
+  filters: zod
+    .array(
+      zod
+        .object({
+          col: zod.string(),
+          op: zod.enum(["eq", "in", "between", "gte", "lte"]),
+          value: zod.union([zod.string(), zod.number()]).nullish(),
+          values: zod.array(zod.string()).nullish(),
+          min: zod.number().nullish(),
+          max: zod.number().nullish(),
+        })
+        .describe(
+          "One filter clause. Use 'value' for eq\/gte\/lte, 'values' for in, and min\/max for between.",
+        ),
+    )
+    .nullish(),
+  time_range: zod
+    .object({
+      kind: zod.enum(["ltm", "year", "ytd"]),
+      year: zod.number().nullish(),
+    })
+    .nullish(),
+  limit: zod.number().nullish(),
+});
+
+export const RunQueryResponse = zod.object({
+  columns: zod.array(
+    zod.object({
+      key: zod.string(),
+      label_ko: zod.string(),
+      format: zod.string().nullish(),
+      unit: zod.string().nullish(),
+    }),
+  ),
+  rows: zod.array(zod.record(zod.string(), zod.unknown())),
+  meta: zod.object({
+    generated_at: zod.coerce.date(),
+    cache_hit: zod.boolean(),
+  }),
+});

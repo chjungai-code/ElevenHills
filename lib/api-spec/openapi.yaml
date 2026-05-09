@@ -14,6 +14,8 @@ tags:
     description: Revenue operations
   - name: sync
     description: Data sync operations
+  - name: metrics
+    description: Metric registry and typed query endpoint
 paths:
   /healthz:
     get:
@@ -78,6 +80,52 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SyncResult"
+  /metrics:
+    get:
+      operationId: listMetrics
+      tags: [metrics]
+      summary: List metric definitions
+      description: Returns the server-side metric registry so the frontend can render labels, units, and formats without duplicating them.
+      responses:
+        "200":
+          description: Metric registry
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MetricDefinition"
+  /query:
+    post:
+      operationId: runQuery
+      tags: [metrics]
+      summary: Run a typed metric query
+      description: Resolves the requested metrics against the server-side registry and returns rows + column metadata. Replaces ad-hoc client-side aggregation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryRequest"
+      responses:
+        "200":
+          description: Query result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryResponse"
+        "400":
+          description: Invalid query
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryError"
+        "501":
+          description: Dataset not yet available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryError"
 components:
   schemas:
     HealthStatus:
@@ -126,3 +174,149 @@ components:
         - month
         - amount
         - created_at
+    MetricDefinition:
+      type: object
+      properties:
+        code:
+          type: string
+        label_ko:
+          type: string
+        unit:
+          type: string
+          enum: [KRW, PCT, YEARS, COUNT]
+        format:
+          type: string
+        dataset:
+          type: string
+          enum: [revenue, kpi]
+        description:
+          type: string
+          nullable: true
+      required:
+        - code
+        - label_ko
+        - unit
+        - format
+        - dataset
+    QueryFilter:
+      type: object
+      description: One filter clause. Use 'value' for eq/gte/lte, 'values' for in, and min/max for between.
+      properties:
+        col:
+          type: string
+        op:
+          type: string
+          enum: [eq, in, between, gte, lte]
+        value:
+          oneOf:
+            - type: string
+            - type: number
+          nullable: true
+        values:
+          type: array
+          nullable: true
+          items:
+            type: string
+        min:
+          type: number
+          nullable: true
+        max:
+          type: number
+          nullable: true
+      required:
+        - col
+        - op
+    TimeRange:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [ltm, year, ytd]
+        year:
+          type: integer
+          nullable: true
+      required:
+        - kind
+    QueryRequest:
+      type: object
+      properties:
+        dataset:
+          type: string
+          enum: [revenue, kpi]
+        metrics:
+          type: array
+          items:
+            type: string
+        group_by:
+          type: array
+          nullable: true
+          items:
+            type: string
+            enum: [company, store, month, quarter, year, kpi_code]
+        filters:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/QueryFilter"
+        time_range:
+          allOf:
+            - $ref: "#/components/schemas/TimeRange"
+          nullable: true
+        limit:
+          type: integer
+          nullable: true
+      required:
+        - dataset
+        - metrics
+    QueryColumn:
+      type: object
+      properties:
+        key:
+          type: string
+        label_ko:
+          type: string
+        format:
+          type: string
+          nullable: true
+        unit:
+          type: string
+          nullable: true
+      required:
+        - key
+        - label_ko
+    QueryMeta:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        cache_hit:
+          type: boolean
+      required:
+        - generated_at
+        - cache_hit
+    QueryResponse:
+      type: object
+      properties:
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/QueryColumn"
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        meta:
+          $ref: "#/components/schemas/QueryMeta"
+      required:
+        - columns
+        - rows
+        - meta
+    QueryError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
