@@ -1,6 +1,8 @@
+import { useMemo } from 'react'
 import { Link, useRoute } from 'wouter'
-import { COMPANIES_SEED } from '@/lib/data/companies'
+import { useGetCompanies } from '@workspace/api-client-react'
 import OwnershipBar from '@/components/governance/OwnershipBar'
+import { fromApiCompanies } from '@/lib/data/companies'
 
 const ROLE_KO: Record<string, string> = {
   ceo:      '대표이사',
@@ -18,7 +20,29 @@ const CATEGORY_KO: Record<string, string> = {
 export default function CompanyDetailPage() {
   const [, params] = useRoute<{ id: string }>('/governance/:id')
   const id = params?.id
-  const company = COMPANIES_SEED.find(c => c.id === id)
+  const companiesQuery = useGetCompanies()
+  const companies = useMemo(
+    () => fromApiCompanies(companiesQuery.data ?? []),
+    [companiesQuery.data],
+  )
+
+  if (companiesQuery.isLoading) {
+    return (
+      <p className="text-xs font-mono tracking-widest uppercase" style={{ color: '#6a6a80' }}>
+        Loading…
+      </p>
+    )
+  }
+
+  if (companiesQuery.isError) {
+    return (
+      <p className="text-xs font-mono tracking-widest uppercase" style={{ color: '#c8a96e' }}>
+        데이터를 불러오지 못했습니다.
+      </p>
+    )
+  }
+
+  const company = companies.find(c => c.id === id)
 
   if (!company) {
     return (
@@ -41,14 +65,13 @@ export default function CompanyDetailPage() {
   }
 
   const parent = company.parent_id
-    ? COMPANIES_SEED.find(c => c.id === company.parent_id)
+    ? companies.find(c => c.id === company.parent_id)
     : null
 
-  const children = COMPANIES_SEED.filter(c => c.parent_id === company.id)
+  const children = companies.filter(c => c.parent_id === company.id)
 
   return (
     <div className="max-w-2xl space-y-6">
-      {/* Back */}
       <Link
         href="/governance"
         className="text-xs font-mono inline-flex items-center gap-1 min-h-[44px] hover:opacity-70 transition-opacity"
@@ -57,7 +80,6 @@ export default function CompanyDetailPage() {
         ← 지배구조로 돌아가기
       </Link>
 
-      {/* Header */}
       <div className="border-l-2 pl-4 min-w-0" style={{ borderColor: '#c8a96e' }}>
         <p
           className="text-[11px] font-mono tracking-widest uppercase mb-1"
@@ -75,7 +97,6 @@ export default function CompanyDetailPage() {
         )}
       </div>
 
-      {/* Locations */}
       {company.locations.length > 0 && (
         <div
           className="rounded-xl p-4"
@@ -101,7 +122,6 @@ export default function CompanyDetailPage() {
         </div>
       )}
 
-      {/* Ownership */}
       {company.shareholders.length > 0 && (
         <div
           className="rounded-xl p-4"
@@ -115,7 +135,6 @@ export default function CompanyDetailPage() {
           </p>
           <OwnershipBar shareholders={company.shareholders} />
 
-          {/* Mobile: stacked card list */}
           <ul className="mt-4 space-y-2 md:hidden">
             {company.shareholders.map((sh, i) => (
               <li
@@ -144,7 +163,6 @@ export default function CompanyDetailPage() {
             ))}
           </ul>
 
-          {/* Desktop: table */}
           <div className="mt-4 hidden md:block">
             <table className="w-full text-sm">
               <thead>
@@ -183,7 +201,6 @@ export default function CompanyDetailPage() {
         </div>
       )}
 
-      {/* Directors */}
       {company.directors.length > 0 && (
         <div
           className="rounded-xl p-4"
@@ -223,7 +240,6 @@ export default function CompanyDetailPage() {
         </div>
       )}
 
-      {/* Relationships */}
       <div
         className="rounded-xl p-4"
         style={{ background: '#13141a', border: '1px solid #272836' }}

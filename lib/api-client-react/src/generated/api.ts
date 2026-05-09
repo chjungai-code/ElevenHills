@@ -19,6 +19,8 @@ import type {
 import type {
   FinancialStatementsResponse,
   GetFinancialStatementsParams,
+  CompanyWithRelations,
+  FamilyMember,
   GetRevenueParams,
   HealthStatus,
   MetricDefinition,
@@ -281,6 +283,53 @@ export const getGetFinancialStatementsQueryOptions = <
   > & { queryKey: QueryKey };
 };
 
+/**
+ * Returns every company joined with its locations and ownership rows, in the shape consumed by the dashboard governance pages.
+ * @summary List companies with locations and shareholders
+ */
+export const getGetCompaniesUrl = () => {
+  return `/api/companies`;
+};
+
+export const getCompanies = async (
+  options?: RequestInit,
+): Promise<CompanyWithRelations[]> => {
+  return customFetch<CompanyWithRelations[]>(getGetCompaniesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCompaniesQueryKey = () => {
+  return [`/api/companies`] as const;
+};
+
+export const getGetCompaniesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCompanies>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCompanies>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCompaniesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCompanies>>> = ({
+    signal,
+  }) => getCompanies({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCompanies>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
 export type GetFinancialStatementsQueryResult = NonNullable<
   Awaited<ReturnType<typeof getFinancialStatements>>
 >;
@@ -305,6 +354,111 @@ export function useGetFinancialStatements<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetFinancialStatementsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type GetCompaniesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCompanies>>
+>;
+export type GetCompaniesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List companies with locations and shareholders
+ */
+
+export function useGetCompanies<
+  TData = Awaited<ReturnType<typeof getCompanies>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCompanies>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCompaniesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns the family member roster (with role and display color) used in the dashboard family bar.
+ * @summary List family members
+ */
+export const getGetFamilyMembersUrl = () => {
+  return `/api/family`;
+};
+
+export const getFamilyMembers = async (
+  options?: RequestInit,
+): Promise<FamilyMember[]> => {
+  return customFetch<FamilyMember[]>(getGetFamilyMembersUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFamilyMembersQueryKey = () => {
+  return [`/api/family`] as const;
+};
+
+export const getGetFamilyMembersQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFamilyMembers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFamilyMembers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFamilyMembersQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFamilyMembers>>
+  > = ({ signal }) => getFamilyMembers({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFamilyMembers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFamilyMembersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFamilyMembers>>
+>;
+export type GetFamilyMembersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List family members
+ */
+
+export function useGetFamilyMembers<
+  TData = Awaited<ReturnType<typeof getFamilyMembers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFamilyMembers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFamilyMembersQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

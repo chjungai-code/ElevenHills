@@ -2,16 +2,16 @@ import { useState, useMemo } from 'react'
 import {
   useGetRevenue,
   useTriggerRevenueSync,
+  useGetCompanies,
   runQuery,
 } from '@workspace/api-client-react'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
-import { COMPANIES_SEED, COMPANY_IDS } from '@/lib/data/companies'
+import { COMPANY_IDS } from '@/lib/data/companies'
 import { ChartRenderer, CHART_THEME, type ChartSpec } from '@/components/charts'
 
 const MONTH_LABELS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 
-const REVENUE_COMPANIES = COMPANIES_SEED.filter(c => c.id !== COMPANY_IDS.ELEVEN_HILLS)
-
+// Colour palette for companies
 const COMPANY_COLORS: Record<string, string> = {
   [COMPANY_IDS.COD_RETAIL]:     '#c8a96e',
   [COMPANY_IDS.COD_VISION]:     '#7eb8d4',
@@ -55,9 +55,16 @@ export default function RevenuePage() {
   })
 
   const { data: allRows = [], isLoading, isError } = useGetRevenue({ year: selectedYear })
+  const { data: allCompanies = [] } = useGetCompanies()
+
+  // Companies that have revenue (exclude the holding company)
+  const REVENUE_COMPANIES = useMemo(
+    () => allCompanies.filter(c => c.id !== COMPANY_IDS.ELEVEN_HILLS),
+    [allCompanies],
+  )
 
   const combinedRows = useMemo(
-    () => allRows.filter(r => r.category === '매출'),
+    () => allRows.filter(r => (r.category ?? '') === '매출'),
     [allRows],
   )
   const storeRows = useMemo(
@@ -118,7 +125,7 @@ export default function RevenuePage() {
       }))
       .filter(c => c.amount > 0)
       .sort((a, b) => b.amount - a.amount)
-  }, [combinedRows])
+  }, [combinedRows, REVENUE_COMPANIES])
 
   const storeBreakdown = useMemo(() => {
     const byStore: Record<string, number> = {}

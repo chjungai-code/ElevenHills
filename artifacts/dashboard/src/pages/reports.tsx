@@ -1,19 +1,18 @@
-import { useState } from 'react'
-import { COMPANIES_SEED } from '@/lib/data/companies'
+import { useState, useMemo } from 'react'
 import {
   useGetFinancialStatements,
   getGetFinancialStatementsQueryKey,
   type FinancialStatement,
   type FinancialStatementLine,
+  useGetCompanies,
 } from '@workspace/api-client-react'
 
 const PERIODS = ['월간', '분기', '연간', 'LTM'] as const
 type Period = typeof PERIODS[number]
 
-const ENTITIES = [
-  { id: 'all', name: '포트폴리오 전체', short: '전체' },
-  ...COMPANIES_SEED.map(c => ({ id: c.id, name: c.name, short: c.short_name })),
-]
+type Entity = { id: string; name: string; short: string | null | undefined }
+
+const FALLBACK_ENTITY: Entity = { id: 'all', name: '포트폴리오 전체', short: '전체' }
 
 const FISCAL_YEARS = [2025, 2024] as const
 type StatementType = 'income_statement' | 'balance_sheet'
@@ -278,6 +277,15 @@ export default function ReportsPage() {
   const [entityId, setEntityId] = useState<string>('c0000001-0000-0000-0000-000000000005') // SGD Partners default to showcase data
   const [fiscalYear, setFiscalYear] = useState<number>(2025)
   const [openStatement, setOpenStatement] = useState<StatementType | null>(null)
+
+  const { data: companies = [] } = useGetCompanies()
+  const ENTITIES: Entity[] = useMemo(
+    () => [
+      FALLBACK_ENTITY,
+      ...companies.map(c => ({ id: c.id, name: c.name, short: c.short_name })),
+    ],
+    [companies],
+  )
 
   const entity = ENTITIES.find(e => e.id === entityId) ?? ENTITIES[0]
   const isPortfolio = entityId === 'all'

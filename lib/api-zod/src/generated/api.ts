@@ -38,6 +38,7 @@ export const GetRevenueResponseItem = zod.object({
 export const GetRevenueResponse = zod.array(GetRevenueResponseItem);
 
 /**
+/**
  * Returns the income statement and balance sheet (or one if `type` is given) for the specified company and fiscal year, as a hierarchical list of lines.
  * @summary Fetch financial statements for a company and fiscal year
  */
@@ -103,6 +104,43 @@ export const GetFinancialStatementsResponse = zod.object({
     zod.null(),
   ]),
 });
+
+/**
+ * Returns every company joined with its locations and ownership rows, in the shape consumed by the dashboard governance pages.
+ * @summary List companies with locations and shareholders
+ */
+export const GetCompaniesResponseItem = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  short_name: zod.string().nullish(),
+  category: zod.string(),
+  parent_id: zod.string().nullish(),
+  locations: zod.array(zod.string()),
+  created_at: zod.string(),
+  shareholders: zod.array(
+    zod.object({
+      id: zod.string(),
+      company_id: zod.string(),
+      name: zod.string(),
+      percentage: zod.number(),
+      is_entity: zod.boolean(),
+      updated_at: zod.string(),
+    }),
+  ),
+  directors: zod.array(zod.object({}).passthrough()),
+});
+export const GetCompaniesResponse = zod.array(GetCompaniesResponseItem);
+
+/**
+ * Returns the family member roster (with role and display color) used in the dashboard family bar.
+ * @summary List family members
+ */
+export const GetFamilyMembersResponseItem = zod.object({
+  name: zod.string(),
+  role: zod.string(),
+  color: zod.string(),
+});
+export const GetFamilyMembersResponse = zod.array(GetFamilyMembersResponseItem);
 
 /**
  * Runs the Google Sheets revenue sync job immediately and returns the result

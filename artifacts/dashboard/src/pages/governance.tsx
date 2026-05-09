@@ -1,15 +1,27 @@
 import { useState } from 'react'
-import { buildCompanyTree, FAMILY_MEMBERS } from '@/lib/data/companies'
+import { useMemo } from 'react'
+import { useGetCompanies, useGetFamilyMembers } from '@workspace/api-client-react'
+import { buildCompanyTree, fromApiCompanies } from '@/lib/data/companies'
 import TreeView from '@/components/governance/TreeView'
 import OrgChart from '@/components/governance/OrgChart'
 
 export default function GovernancePage() {
   const [view, setView] = useState<'tree' | 'org'>('tree')
-  const { holding, standalones } = buildCompanyTree()
+  const companiesQuery = useGetCompanies()
+  const familyQuery = useGetFamilyMembers()
+
+  const companies = useMemo(
+    () => fromApiCompanies(companiesQuery.data ?? []),
+    [companiesQuery.data],
+  )
+  const family = familyQuery.data ?? []
+  const { holding, standalones } = useMemo(
+    () => buildCompanyTree(companies),
+    [companies],
+  )
 
   return (
     <div className="space-y-6 max-w-6xl">
-      {/* Header */}
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div className="border-l-2 pl-4 min-w-0" style={{ borderColor: '#c8a96e' }}>
           <p
@@ -23,7 +35,6 @@ export default function GovernancePage() {
           </h1>
         </div>
 
-        {/* View toggle */}
         <div
           className="flex gap-1 rounded-xl p-1 w-full sm:w-auto"
           style={{ background: '#13141a', border: '1px solid #272836' }}
@@ -45,7 +56,6 @@ export default function GovernancePage() {
         </div>
       </div>
 
-      {/* Family bar */}
       <div
         className="rounded-xl px-4 py-3 flex flex-wrap gap-3 md:gap-5 items-center text-sm"
         style={{ background: '#13141a', border: '1px solid #272836' }}
@@ -56,7 +66,7 @@ export default function GovernancePage() {
         >
           가족관계
         </span>
-        {FAMILY_MEMBERS.map(m => (
+        {family.map(m => (
           <span key={m.name} className="flex items-center gap-1.5 break-keep">
             <span className="font-semibold" style={{ color: m.color }}>{m.name}</span>
             <span className="text-xs" style={{ color: '#6a6a80' }}>{m.role}</span>
@@ -64,11 +74,23 @@ export default function GovernancePage() {
         ))}
       </div>
 
-      {/* Chart */}
-      {view === 'tree'
-        ? <TreeView holding={holding} standalones={standalones} />
-        : <OrgChart  holding={holding} standalones={standalones} />
-      }
+      {companiesQuery.isLoading && (
+        <p className="text-xs font-mono tracking-widest uppercase" style={{ color: '#6a6a80' }}>
+          Loading…
+        </p>
+      )}
+
+      {companiesQuery.isError && (
+        <p className="text-xs font-mono tracking-widest uppercase" style={{ color: '#c8a96e' }}>
+          데이터를 불러오지 못했습니다.
+        </p>
+      )}
+
+      {!companiesQuery.isLoading && !companiesQuery.isError && holding && (
+        view === 'tree'
+          ? <TreeView holding={holding} standalones={standalones} />
+          : <OrgChart  holding={holding} standalones={standalones} />
+      )}
     </div>
   )
 }

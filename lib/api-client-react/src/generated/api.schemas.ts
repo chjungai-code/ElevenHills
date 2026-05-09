@@ -44,6 +44,36 @@ export interface FinancialStatementsResponse {
   balance_sheet: FinancialStatement | null;
 }
 
+export interface Shareholder {
+  id: string;
+  company_id: string;
+  name: string;
+  percentage: number;
+  is_entity: boolean;
+  updated_at: string;
+}
+
+export type CompanyWithRelationsDirectorsItem = { [key: string]: unknown };
+
+export interface CompanyWithRelations {
+  id: string;
+  name: string;
+  short_name?: string | null;
+  category: string;
+  parent_id?: string | null;
+  locations: string[];
+  created_at: string;
+  shareholders: Shareholder[];
+  directors: CompanyWithRelationsDirectorsItem[];
+}
+
+export interface FamilyMember {
+  name: string;
+  role: string;
+  color: string;
+}
+}
+
 export interface RevenueRecord {
   id: string;
   company_id: string;

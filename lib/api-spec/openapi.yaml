@@ -18,6 +18,8 @@ tags:
     description: Metric registry and typed query endpoint
   - name: financial-statements
     description: Financial statement operations
+  - name: companies
+    description: Company / governance read endpoints
 paths:
   /healthz:
     get:
@@ -93,6 +95,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FinancialStatementsResponse"
+  /companies:
+    get:
+      operationId: getCompanies
+      tags: [companies]
+      summary: List companies with locations and shareholders
+      description: Returns every company joined with its locations and ownership rows, in the shape consumed by the dashboard governance pages.
+      responses:
+        "200":
+          description: Companies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompanyWithRelations"
+  /family:
+    get:
+      operationId: getFamilyMembers
+      tags: [companies]
+      summary: List family members
+      description: Returns the family member roster (with role and display color) used in the dashboard family bar.
+      responses:
+        "200":
+          description: Family members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FamilyMember"
   /sync/revenue:
     post:
       operationId: triggerRevenueSync
@@ -260,6 +292,78 @@ components:
       required:
         - income_statement
         - balance_sheet
+    Shareholder:
+      type: object
+      properties:
+        id:
+          type: string
+        company_id:
+          type: string
+        name:
+          type: string
+        percentage:
+          type: number
+        is_entity:
+          type: boolean
+        updated_at:
+          type: string
+      required:
+        - id
+        - company_id
+        - name
+        - percentage
+        - is_entity
+        - updated_at
+    CompanyWithRelations:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        short_name:
+          type: string
+          nullable: true
+        category:
+          type: string
+        parent_id:
+          type: string
+          nullable: true
+        locations:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+        shareholders:
+          type: array
+          items:
+            $ref: "#/components/schemas/Shareholder"
+        directors:
+          type: array
+          items:
+            type: object
+      required:
+        - id
+        - name
+        - category
+        - locations
+        - created_at
+        - shareholders
+        - directors
+    FamilyMember:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        color:
+          type: string
+      required:
+        - name
+        - role
+        - color
     RevenueRecord:
       type: object
       properties:

@@ -1,5 +1,5 @@
 import { Link } from 'wouter'
-import { COMPANIES_SEED, FAMILY_MEMBERS } from '@/lib/data/companies'
+import { useGetCompanies, useGetFamilyMembers } from '@workspace/api-client-react'
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -26,13 +26,34 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 }
 
 export default function DashboardHome() {
-  const subsidiaries = COMPANIES_SEED.filter(c => c.category === 'subsidiary')
-  const standalones  = COMPANIES_SEED.filter(c => c.category === 'standalone')
-  const total        = COMPANIES_SEED.length
+  const companiesQuery = useGetCompanies()
+  const familyQuery = useGetFamilyMembers()
+
+  if (companiesQuery.isLoading || familyQuery.isLoading) {
+    return (
+      <p className="text-xs font-mono tracking-widest uppercase" style={{ color: '#6a6a80' }}>
+        Loading…
+      </p>
+    )
+  }
+
+  if (companiesQuery.isError || familyQuery.isError) {
+    return (
+      <p className="text-xs font-mono tracking-widest uppercase" style={{ color: '#c8a96e' }}>
+        데이터를 불러오지 못했습니다.
+      </p>
+    )
+  }
+
+  const companies = companiesQuery.data ?? []
+  const family = familyQuery.data ?? []
+
+  const subsidiaries = companies.filter(c => c.category === 'subsidiary')
+  const standalones  = companies.filter(c => c.category === 'standalone')
+  const total        = companies.length
 
   return (
     <div className="space-y-6 md:space-y-8 max-w-4xl">
-      {/* Header */}
       <div className="border-l-2 pl-4" style={{ borderColor: '#c8a96e' }}>
         <p
           className="text-[11px] font-mono tracking-widest uppercase mb-1"
@@ -45,7 +66,6 @@ export default function DashboardHome() {
         </h1>
       </div>
 
-      {/* Family */}
       <div
         className="rounded-xl p-4 flex flex-wrap gap-x-5 gap-y-2 md:gap-6 items-center text-sm"
         style={{ background: '#13141a', border: '1px solid #272836' }}
@@ -56,7 +76,7 @@ export default function DashboardHome() {
         >
           가족관계
         </span>
-        {FAMILY_MEMBERS.map(m => (
+        {family.map(m => (
           <span key={m.name} className="flex items-center gap-2">
             <span className="font-semibold" style={{ color: m.color }}>{m.name}</span>
             <span className="text-xs" style={{ color: '#6a6a80' }}>{m.role}</span>
@@ -64,7 +84,6 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard label="총 법인수"   value={`${total}개`}              sub="등록 법인 전체" />
         <StatCard label="자회사"      value={`${subsidiaries.length}개`} sub="일레븐힐스 관여" />
@@ -72,7 +91,6 @@ export default function DashboardHome() {
         <StatCard label="최대 지분율" value="60%"                        sub="씨오디 리테일" />
       </div>
 
-      {/* Quick links */}
       <div>
         <p
           className="text-[10px] font-mono tracking-widest uppercase mb-3"
