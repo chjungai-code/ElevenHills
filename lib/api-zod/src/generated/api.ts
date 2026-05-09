@@ -38,7 +38,6 @@ export const GetRevenueResponseItem = zod.object({
 export const GetRevenueResponse = zod.array(GetRevenueResponseItem);
 
 /**
-/**
  * Returns the income statement and balance sheet (or one if `type` is given) for the specified company and fiscal year, as a hierarchical list of lines.
  * @summary Fetch financial statements for a company and fiscal year
  */
@@ -103,6 +102,70 @@ export const GetFinancialStatementsResponse = zod.object({
     }),
     zod.null(),
   ]),
+});
+
+/**
+ * @summary Upsert a parsed financial statement (replaces existing rows for same company/year/type)
+ */
+export const SaveFinancialStatementBody = zod.object({
+  company_id: zod.string(),
+  fiscal_year: zod.number(),
+  statement_type: zod.enum(["income_statement", "balance_sheet"]),
+  markdown: zod.string(),
+  period_start: zod.string().nullish(),
+  period_end: zod.string().nullish(),
+  skip_verification: zod.boolean().nullish(),
+});
+
+export const SaveFinancialStatementResponse = zod.object({
+  statement_id: zod.string(),
+  line_count: zod.number(),
+  issues: zod.array(
+    zod.object({
+      period: zod.enum(["current", "prior"]),
+      message: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * Streams the request body (raw PDF, content-type `application/pdf`) to LlamaParse
+(LlamaCloud) and returns the parsed markdown. The markdown can then be sent to
+`/financial-statements/preview` and `/financial-statements`.
+
+ * @summary Convert an uploaded PDF financial statement into markdown
+ */
+export const ParseFinancialStatementPdfResponse = zod.object({
+  markdown: zod.string(),
+});
+
+/**
+ * @summary Parse a markdown statement and return rows + verification issues without saving
+ */
+export const PreviewFinancialStatementBody = zod.object({
+  markdown: zod.string(),
+  statement_type: zod.enum(["income_statement", "balance_sheet"]),
+});
+
+export const PreviewFinancialStatementResponse = zod.object({
+  statement_type: zod.enum(["income_statement", "balance_sheet"]),
+  line_count: zod.number(),
+  lines: zod.array(
+    zod.object({
+      account_name_ko: zod.string(),
+      section_code: zod.string().nullish(),
+      depth: zod.number(),
+      is_subtotal: zod.boolean(),
+      amount: zod.string().nullish(),
+      prior_amount: zod.string().nullish(),
+    }),
+  ),
+  issues: zod.array(
+    zod.object({
+      period: zod.enum(["current", "prior"]),
+      message: zod.string(),
+    }),
+  ),
 });
 
 /**

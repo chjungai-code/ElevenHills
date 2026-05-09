@@ -17,10 +17,16 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
-  FinancialStatementsResponse,
-  GetFinancialStatementsParams,
   CompanyWithRelations,
   FamilyMember,
+  FinancialStatementPdfMarkdown,
+  FinancialStatementPreview,
+  FinancialStatementPreviewRequest,
+  FinancialStatementSaveError,
+  FinancialStatementSaveRequest,
+  FinancialStatementSaveResult,
+  FinancialStatementsResponse,
+  GetFinancialStatementsParams,
   GetRevenueParams,
   HealthStatus,
   MetricDefinition,
@@ -283,6 +289,313 @@ export const getGetFinancialStatementsQueryOptions = <
   > & { queryKey: QueryKey };
 };
 
+export type GetFinancialStatementsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFinancialStatements>>
+>;
+export type GetFinancialStatementsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Fetch financial statements for a company and fiscal year
+ */
+
+export function useGetFinancialStatements<
+  TData = Awaited<ReturnType<typeof getFinancialStatements>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetFinancialStatementsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFinancialStatements>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFinancialStatementsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Upsert a parsed financial statement (replaces existing rows for same company/year/type)
+ */
+export const getSaveFinancialStatementUrl = () => {
+  return `/api/financial-statements`;
+};
+
+export const saveFinancialStatement = async (
+  financialStatementSaveRequest: FinancialStatementSaveRequest,
+  options?: RequestInit,
+): Promise<FinancialStatementSaveResult> => {
+  return customFetch<FinancialStatementSaveResult>(
+    getSaveFinancialStatementUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(financialStatementSaveRequest),
+    },
+  );
+};
+
+export const getSaveFinancialStatementMutationOptions = <
+  TError = ErrorType<QueryError | FinancialStatementSaveError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveFinancialStatement>>,
+    TError,
+    { data: BodyType<FinancialStatementSaveRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveFinancialStatement>>,
+  TError,
+  { data: BodyType<FinancialStatementSaveRequest> },
+  TContext
+> => {
+  const mutationKey = ["saveFinancialStatement"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveFinancialStatement>>,
+    { data: BodyType<FinancialStatementSaveRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return saveFinancialStatement(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveFinancialStatementMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveFinancialStatement>>
+>;
+export type SaveFinancialStatementMutationBody =
+  BodyType<FinancialStatementSaveRequest>;
+export type SaveFinancialStatementMutationError = ErrorType<
+  QueryError | FinancialStatementSaveError
+>;
+
+/**
+ * @summary Upsert a parsed financial statement (replaces existing rows for same company/year/type)
+ */
+export const useSaveFinancialStatement = <
+  TError = ErrorType<QueryError | FinancialStatementSaveError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveFinancialStatement>>,
+    TError,
+    { data: BodyType<FinancialStatementSaveRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof saveFinancialStatement>>,
+  TError,
+  { data: BodyType<FinancialStatementSaveRequest> },
+  TContext
+> => {
+  return useMutation(getSaveFinancialStatementMutationOptions(options));
+};
+
+/**
+ * Streams the request body (raw PDF, content-type `application/pdf`) to LlamaParse
+(LlamaCloud) and returns the parsed markdown. The markdown can then be sent to
+`/financial-statements/preview` and `/financial-statements`.
+
+ * @summary Convert an uploaded PDF financial statement into markdown
+ */
+export const getParseFinancialStatementPdfUrl = () => {
+  return `/api/financial-statements/parse-pdf`;
+};
+
+export const parseFinancialStatementPdf = async (
+  parseFinancialStatementPdfBody: Blob,
+  options?: RequestInit,
+): Promise<FinancialStatementPdfMarkdown> => {
+  return customFetch<FinancialStatementPdfMarkdown>(
+    getParseFinancialStatementPdfUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/pdf", ...options?.headers },
+      body: JSON.stringify(parseFinancialStatementPdfBody),
+    },
+  );
+};
+
+export const getParseFinancialStatementPdfMutationOptions = <
+  TError = ErrorType<QueryError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof parseFinancialStatementPdf>>,
+    TError,
+    { data: BodyType<Blob> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof parseFinancialStatementPdf>>,
+  TError,
+  { data: BodyType<Blob> },
+  TContext
+> => {
+  const mutationKey = ["parseFinancialStatementPdf"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof parseFinancialStatementPdf>>,
+    { data: BodyType<Blob> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return parseFinancialStatementPdf(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ParseFinancialStatementPdfMutationResult = NonNullable<
+  Awaited<ReturnType<typeof parseFinancialStatementPdf>>
+>;
+export type ParseFinancialStatementPdfMutationBody = BodyType<Blob>;
+export type ParseFinancialStatementPdfMutationError = ErrorType<QueryError>;
+
+/**
+ * @summary Convert an uploaded PDF financial statement into markdown
+ */
+export const useParseFinancialStatementPdf = <
+  TError = ErrorType<QueryError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof parseFinancialStatementPdf>>,
+    TError,
+    { data: BodyType<Blob> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof parseFinancialStatementPdf>>,
+  TError,
+  { data: BodyType<Blob> },
+  TContext
+> => {
+  return useMutation(getParseFinancialStatementPdfMutationOptions(options));
+};
+
+/**
+ * @summary Parse a markdown statement and return rows + verification issues without saving
+ */
+export const getPreviewFinancialStatementUrl = () => {
+  return `/api/financial-statements/preview`;
+};
+
+export const previewFinancialStatement = async (
+  financialStatementPreviewRequest: FinancialStatementPreviewRequest,
+  options?: RequestInit,
+): Promise<FinancialStatementPreview> => {
+  return customFetch<FinancialStatementPreview>(
+    getPreviewFinancialStatementUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(financialStatementPreviewRequest),
+    },
+  );
+};
+
+export const getPreviewFinancialStatementMutationOptions = <
+  TError = ErrorType<QueryError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof previewFinancialStatement>>,
+    TError,
+    { data: BodyType<FinancialStatementPreviewRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof previewFinancialStatement>>,
+  TError,
+  { data: BodyType<FinancialStatementPreviewRequest> },
+  TContext
+> => {
+  const mutationKey = ["previewFinancialStatement"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof previewFinancialStatement>>,
+    { data: BodyType<FinancialStatementPreviewRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return previewFinancialStatement(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PreviewFinancialStatementMutationResult = NonNullable<
+  Awaited<ReturnType<typeof previewFinancialStatement>>
+>;
+export type PreviewFinancialStatementMutationBody =
+  BodyType<FinancialStatementPreviewRequest>;
+export type PreviewFinancialStatementMutationError = ErrorType<QueryError>;
+
+/**
+ * @summary Parse a markdown statement and return rows + verification issues without saving
+ */
+export const usePreviewFinancialStatement = <
+  TError = ErrorType<QueryError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof previewFinancialStatement>>,
+    TError,
+    { data: BodyType<FinancialStatementPreviewRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof previewFinancialStatement>>,
+  TError,
+  { data: BodyType<FinancialStatementPreviewRequest> },
+  TContext
+> => {
+  return useMutation(getPreviewFinancialStatementMutationOptions(options));
+};
+
 /**
  * Returns every company joined with its locations and ownership rows, in the shape consumed by the dashboard governance pages.
  * @summary List companies with locations and shareholders
@@ -329,38 +642,6 @@ export const getGetCompaniesQueryOptions = <
     TData
   > & { queryKey: QueryKey };
 };
-
-export type GetFinancialStatementsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getFinancialStatements>>
->;
-export type GetFinancialStatementsQueryError = ErrorType<unknown>;
-
-/**
- * @summary Fetch financial statements for a company and fiscal year
- */
-
-export function useGetFinancialStatements<
-  TData = Awaited<ReturnType<typeof getFinancialStatements>>,
-  TError = ErrorType<unknown>,
->(
-  params: GetFinancialStatementsParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getFinancialStatements>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetFinancialStatementsQueryOptions(params, options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
 
 export type GetCompaniesQueryResult = NonNullable<
   Awaited<ReturnType<typeof getCompanies>>

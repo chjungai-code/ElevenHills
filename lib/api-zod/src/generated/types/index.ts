@@ -6,19 +6,29 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from "./financialStatement";
-export * from "./financialStatementLine";
-export * from "./financialStatementsResponse";
-export * from "./getFinancialStatementsParams";
-export * from "./getFinancialStatementsType";
 export * from "./companyWithRelations";
 export * from "./companyWithRelationsDirectorsItem";
 export * from "./familyMember";
+export * from "./financialStatement";
+export * from "./financialStatementLine";
+export * from "./financialStatementPdfMarkdown";
+export * from "./financialStatementPreview";
+export * from "./financialStatementPreviewRequest";
+export * from "./financialStatementPreviewRequestStatementType";
+export * from "./financialStatementPreviewStatementType";
+export * from "./financialStatementSaveError";
+export * from "./financialStatementSaveRequest";
+export * from "./financialStatementSaveRequestStatementType";
+export * from "./financialStatementSaveResult";
+export * from "./financialStatementsResponse";
+export * from "./getFinancialStatementsParams";
+export * from "./getFinancialStatementsType";
 export * from "./getRevenueParams";
 export * from "./healthStatus";
 export * from "./metricDefinition";
 export * from "./metricDefinitionDataset";
 export * from "./metricDefinitionUnit";
+export * from "./parsedFinancialLine";
 export * from "./queryColumn";
 export * from "./queryError";
 export * from "./queryFilter";
@@ -31,6 +41,8 @@ export * from "./queryResponse";
 export * from "./queryResponseRowsItem";
 export * from "./revenueRecord";
 export * from "./shareholder";
+export * from "./statementVerifyIssue";
+export * from "./statementVerifyIssuePeriod";
 export * from "./syncResult";
 export * from "./timeRange";
 export * from "./timeRangeKind";

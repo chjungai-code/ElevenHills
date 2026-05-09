@@ -95,6 +95,88 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FinancialStatementsResponse"
+    post:
+      operationId: saveFinancialStatement
+      tags: [financial-statements]
+      summary: Upsert a parsed financial statement (replaces existing rows for same company/year/type)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinancialStatementSaveRequest"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialStatementSaveResult"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryError"
+        "422":
+          description: Verification failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialStatementSaveError"
+  /financial-statements/parse-pdf:
+    post:
+      operationId: parseFinancialStatementPdf
+      tags: [financial-statements]
+      summary: Convert an uploaded PDF financial statement into markdown
+      description: |
+        Streams the request body (raw PDF, content-type `application/pdf`) to LlamaParse
+        (LlamaCloud) and returns the parsed markdown. The markdown can then be sent to
+        `/financial-statements/preview` and `/financial-statements`.
+      requestBody:
+        required: true
+        content:
+          application/pdf:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Parsed markdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialStatementPdfMarkdown"
+        "503":
+          description: LlamaParse not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryError"
+  /financial-statements/preview:
+    post:
+      operationId: previewFinancialStatement
+      tags: [financial-statements]
+      summary: Parse a markdown statement and return rows + verification issues without saving
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinancialStatementPreviewRequest"
+      responses:
+        "200":
+          description: Preview rows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialStatementPreview"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryError"
   /companies:
     get:
       operationId: getCompanies
@@ -292,6 +374,131 @@ components:
       required:
         - income_statement
         - balance_sheet
+    StatementVerifyIssue:
+      type: object
+      properties:
+        period:
+          type: string
+          enum: [current, prior]
+        message:
+          type: string
+      required:
+        - period
+        - message
+    ParsedFinancialLine:
+      type: object
+      properties:
+        account_name_ko:
+          type: string
+        section_code:
+          type: string
+          nullable: true
+        depth:
+          type: integer
+        is_subtotal:
+          type: boolean
+        amount:
+          type: string
+          nullable: true
+        prior_amount:
+          type: string
+          nullable: true
+      required:
+        - account_name_ko
+        - depth
+        - is_subtotal
+    FinancialStatementPdfMarkdown:
+      type: object
+      properties:
+        markdown:
+          type: string
+      required:
+        - markdown
+    FinancialStatementPreviewRequest:
+      type: object
+      properties:
+        markdown:
+          type: string
+        statement_type:
+          type: string
+          enum: [income_statement, balance_sheet]
+      required:
+        - markdown
+        - statement_type
+    FinancialStatementPreview:
+      type: object
+      properties:
+        statement_type:
+          type: string
+          enum: [income_statement, balance_sheet]
+        line_count:
+          type: integer
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParsedFinancialLine"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatementVerifyIssue"
+      required:
+        - statement_type
+        - line_count
+        - lines
+        - issues
+    FinancialStatementSaveRequest:
+      type: object
+      properties:
+        company_id:
+          type: string
+        fiscal_year:
+          type: integer
+        statement_type:
+          type: string
+          enum: [income_statement, balance_sheet]
+        markdown:
+          type: string
+        period_start:
+          type: string
+          nullable: true
+        period_end:
+          type: string
+          nullable: true
+        skip_verification:
+          type: boolean
+          nullable: true
+      required:
+        - company_id
+        - fiscal_year
+        - statement_type
+        - markdown
+    FinancialStatementSaveResult:
+      type: object
+      properties:
+        statement_id:
+          type: string
+        line_count:
+          type: integer
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatementVerifyIssue"
+      required:
+        - statement_id
+        - line_count
+        - issues
+    FinancialStatementSaveError:
+      type: object
+      properties:
+        error:
+          type: string
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatementVerifyIssue"
+      required:
+        - error
+        - issues
     Shareholder:
       type: object
       properties:

@@ -13,6 +13,8 @@ import {
   deltaEok,
   deltaRatio,
 } from '../lib/derive-kpis'
+import { UploadStatementModal } from '../components/upload-statement-modal'
+import { useIsAdmin } from '@/lib/supabase/useIsAdmin'
 
 const PERIODS = ['월간', '분기', '연간', 'LTM'] as const
 type Period = typeof PERIODS[number]
@@ -288,6 +290,8 @@ export default function ReportsPage() {
   const [entityId, setEntityId] = useState<string>('c0000001-0000-0000-0000-000000000005') // SGD Partners default to showcase data
   const [fiscalYear, setFiscalYear] = useState<number>(2025)
   const [openStatement, setOpenStatement] = useState<StatementType | null>(null)
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const isAdmin = useIsAdmin()
 
   const { data: companies = [] } = useGetCompanies()
   const ENTITIES: Entity[] = useMemo(
@@ -456,8 +460,22 @@ export default function ReportsPage() {
               )
             })}
           </div>
-          <div style={{ fontSize: 10.5, color: C.muted, fontFamily: "'DM Mono', monospace" }}>
-            {entity.name} · FY{fiscalYear}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            {isAdmin && (
+              <button
+                onClick={() => setUploadOpen(true)}
+                style={{
+                  fontSize: 11, padding: '6px 14px', borderRadius: 20,
+                  border: `1px solid ${C.gold}`, background: 'transparent',
+                  color: C.gold, cursor: 'pointer', fontWeight: 600,
+                }}
+              >
+                + 재무제표 업로드
+              </button>
+            )}
+            <div style={{ fontSize: 10.5, color: C.muted, fontFamily: "'DM Mono', monospace" }}>
+              {entity.name} · FY{fiscalYear}
+            </div>
           </div>
         </div>
 
@@ -592,6 +610,14 @@ export default function ReportsPage() {
         <strong style={{ color: C.ink }}>Tier 2</strong> — CEO·경영진 월간 운영 검토. 자산별·구역별 드릴다운 가능.<br />
         ★ 표시 지표는 상장 리테일 REIT(리츠)가 투자자에게 공시하는 지표와 동일하게 정의 및 산출 가능. ICSC, Nareit, NCREIF 기준 참조.
       </div>
+
+      <UploadStatementModal
+        open={uploadOpen && isAdmin}
+        onClose={() => setUploadOpen(false)}
+        defaultCompanyId={entityId}
+        defaultFiscalYear={fiscalYear}
+        defaultStatementType={openStatement ?? 'income_statement'}
+      />
 
       <style>{`
         @media (max-width: 640px) {

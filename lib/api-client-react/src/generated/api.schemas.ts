@@ -44,6 +44,89 @@ export interface FinancialStatementsResponse {
   balance_sheet: FinancialStatement | null;
 }
 
+export type StatementVerifyIssuePeriod =
+  (typeof StatementVerifyIssuePeriod)[keyof typeof StatementVerifyIssuePeriod];
+
+export const StatementVerifyIssuePeriod = {
+  current: "current",
+  prior: "prior",
+} as const;
+
+export interface StatementVerifyIssue {
+  period: StatementVerifyIssuePeriod;
+  message: string;
+}
+
+export interface ParsedFinancialLine {
+  account_name_ko: string;
+  section_code?: string | null;
+  depth: number;
+  is_subtotal: boolean;
+  amount?: string | null;
+  prior_amount?: string | null;
+}
+
+export interface FinancialStatementPdfMarkdown {
+  markdown: string;
+}
+
+export type FinancialStatementPreviewRequestStatementType =
+  (typeof FinancialStatementPreviewRequestStatementType)[keyof typeof FinancialStatementPreviewRequestStatementType];
+
+export const FinancialStatementPreviewRequestStatementType = {
+  income_statement: "income_statement",
+  balance_sheet: "balance_sheet",
+} as const;
+
+export interface FinancialStatementPreviewRequest {
+  markdown: string;
+  statement_type: FinancialStatementPreviewRequestStatementType;
+}
+
+export type FinancialStatementPreviewStatementType =
+  (typeof FinancialStatementPreviewStatementType)[keyof typeof FinancialStatementPreviewStatementType];
+
+export const FinancialStatementPreviewStatementType = {
+  income_statement: "income_statement",
+  balance_sheet: "balance_sheet",
+} as const;
+
+export interface FinancialStatementPreview {
+  statement_type: FinancialStatementPreviewStatementType;
+  line_count: number;
+  lines: ParsedFinancialLine[];
+  issues: StatementVerifyIssue[];
+}
+
+export type FinancialStatementSaveRequestStatementType =
+  (typeof FinancialStatementSaveRequestStatementType)[keyof typeof FinancialStatementSaveRequestStatementType];
+
+export const FinancialStatementSaveRequestStatementType = {
+  income_statement: "income_statement",
+  balance_sheet: "balance_sheet",
+} as const;
+
+export interface FinancialStatementSaveRequest {
+  company_id: string;
+  fiscal_year: number;
+  statement_type: FinancialStatementSaveRequestStatementType;
+  markdown: string;
+  period_start?: string | null;
+  period_end?: string | null;
+  skip_verification?: boolean | null;
+}
+
+export interface FinancialStatementSaveResult {
+  statement_id: string;
+  line_count: number;
+  issues: StatementVerifyIssue[];
+}
+
+export interface FinancialStatementSaveError {
+  error: string;
+  issues: StatementVerifyIssue[];
+}
+
 export interface Shareholder {
   id: string;
   company_id: string;
