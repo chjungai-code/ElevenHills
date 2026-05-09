@@ -107,7 +107,7 @@ export function UploadStatementModal({
           method: 'POST',
           headers: {
             'content-type': 'application/pdf',
-            'x-filename': file.name,
+            'x-filename': encodeURIComponent(file.name),
             accept: 'application/json',
           },
           body: buf,

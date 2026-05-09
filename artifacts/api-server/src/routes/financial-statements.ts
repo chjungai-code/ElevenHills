@@ -173,10 +173,16 @@ router.post(
         return;
       }
       const filenameHeader = req.header("x-filename");
+      let decodedFilename: string | undefined;
+      if (typeof filenameHeader === "string" && filenameHeader.length > 0) {
+        try {
+          decodedFilename = decodeURIComponent(filenameHeader);
+        } catch {
+          decodedFilename = filenameHeader;
+        }
+      }
       const filename =
-        typeof filenameHeader === "string" && filenameHeader.length > 0
-          ? filenameHeader
-          : "statement.pdf";
+        decodedFilename && decodedFilename.length > 0 ? decodedFilename : "statement.pdf";
 
       const markdown = await parsePdfToMarkdown(body, filename);
       res.json({ markdown });
