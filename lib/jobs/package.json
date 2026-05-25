@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "sync-revenue": "tsx src/sync-revenue-from-sheets.ts",
+    "sync-tax-documents": "tsx src/sync-tax-documents.ts",
     "backfill-companies": "tsx src/backfill-companies.ts"
   },
   "dependencies": {

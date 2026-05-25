@@ -1,9 +1,14 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useRoute } from 'wouter'
-import { useGetCompanies } from '@workspace/api-client-react'
+import {
+  useGetCompanies,
+  useGetTaxDocuments,
+  useTriggerTaxDocumentsSync,
+} from '@workspace/api-client-react'
+import { useQueryClient } from '@tanstack/react-query'
 import OwnershipBar from '@/components/governance/OwnershipBar'
 import { fromApiCompanies } from '@/lib/data/companies'
-import { getTaxDocuments2025 } from '@/lib/data/tax-documents-2025'
+import { useIsAdmin } from '@/lib/supabase/useIsAdmin'
 
 const ROLE_KO: Record<string, string> = {
   ceo:      '대표이사',
@@ -66,12 +71,48 @@ export default function CompanyDetailPage() {
   }
 
   const parent = company.parent_id
-    ? companies.find(c => c.id === company.parent_id)
+    ? companies.find(c => c.id === company.parent_id) ?? null
     : null
 
   const children = companies.filter(c => c.parent_id === company.id)
 
-  const taxFolders = getTaxDocuments2025(company.id)
+  return <CompanyDetailBody company={company} parent={parent} children={children} />
+}
+
+type CompanyShape = ReturnType<typeof fromApiCompanies>[number]
+
+function CompanyDetailBody({
+  company,
+  parent,
+  children,
+}: {
+  company: CompanyShape
+  parent: CompanyShape | null
+  children: CompanyShape[]
+}) {
+  const isAdmin = useIsAdmin()
+  const queryClient = useQueryClient()
+  const [syncMessage, setSyncMessage] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const taxDocsQuery = useGetTaxDocuments()
+  const taxFolders = taxDocsQuery.data?.documents?.[company.id] ?? []
+  const lastSyncedAt = taxDocsQuery.data?.last_synced_at ?? null
+
+  const { mutate: triggerTaxSync, isPending: isSyncingTax } = useTriggerTaxDocumentsSync({
+    mutation: {
+      onSuccess: (data) => {
+        setSyncMessage({ ok: data.success, text: data.message })
+        if (data.success) {
+          queryClient.invalidateQueries({ queryKey: ['/api/tax-documents'] })
+        }
+        setTimeout(() => setSyncMessage(null), 6000)
+      },
+      onError: () => {
+        setSyncMessage({ ok: false, text: 'Drive 동기화 요청 중 오류가 발생했습니다.' })
+        setTimeout(() => setSyncMessage(null), 6000)
+      },
+    },
+  })
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -289,17 +330,52 @@ export default function CompanyDetailPage() {
         </div>
       </div>
 
-      {taxFolders.length > 0 && (
+      {(taxFolders.length > 0 || isAdmin) && (
         <div
           className="rounded-xl p-4"
           style={{ background: '#13141a', border: '1px solid #272836' }}
         >
-          <p
-            className="text-[10px] font-mono tracking-widest uppercase mb-3"
-            style={{ color: '#6a6a80' }}
-          >
-            법인세 서류 (2025)
-          </p>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p
+                className="text-[10px] font-mono tracking-widest uppercase"
+                style={{ color: '#6a6a80' }}
+              >
+                법인세 서류 (2025)
+              </p>
+              {lastSyncedAt && (
+                <p className="text-[10px] font-mono mt-1" style={{ color: '#6a6a80' }}>
+                  마지막 동기화: {new Date(lastSyncedAt).toLocaleString('ko-KR')}
+                </p>
+              )}
+            </div>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => triggerTaxSync()}
+                disabled={isSyncingTax}
+                className="text-[10px] font-mono tracking-widest uppercase rounded-md px-3 py-2 min-h-[36px] hover:opacity-80 transition-opacity disabled:opacity-50 shrink-0"
+                style={{ background: '#1c1d26', border: '1px solid #272836', color: '#c8a96e' }}
+              >
+                {isSyncingTax ? '동기화중…' : 'Drive 새로고침'}
+              </button>
+            )}
+          </div>
+          {syncMessage && (
+            <p
+              className="text-[11px] font-mono mb-3 break-all"
+              style={{ color: syncMessage.ok ? '#85c49a' : '#e07b7b' }}
+            >
+              {syncMessage.text}
+            </p>
+          )}
+          {taxFolders.length === 0 && (
+            <p className="text-xs" style={{ color: '#6a6a80' }}>
+              {taxDocsQuery.isLoading
+                ? '불러오는 중…'
+                : '등록된 서류가 없습니다.'}
+            </p>
+          )}
           <div className="space-y-4">
             {taxFolders.map(folder => (
               <div key={folder.subfolder}>

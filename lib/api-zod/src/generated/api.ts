@@ -215,6 +215,38 @@ export const TriggerRevenueSyncResponse = zod.object({
 });
 
 /**
+ * Returns the cached Drive enumeration of the 정주현_법인세_서류_2025 folder, grouped by company → subfolder.
+ * @summary List cached 2025 법인세 documents from Drive
+ */
+export const GetTaxDocumentsResponse = zod.object({
+  documents: zod.record(
+    zod.string(),
+    zod.array(
+      zod.object({
+        subfolder: zod.string(),
+        files: zod.array(
+          zod.object({
+            name: zod.string(),
+            webViewLink: zod.string(),
+            mimeType: zod.string(),
+          }),
+        ),
+      }),
+    ),
+  ),
+  last_synced_at: zod.string().nullable(),
+});
+
+/**
+ * Runs the Google Drive tax-documents sync job immediately and returns the result.
+ * @summary Re-enumerate the Drive tax-documents folder (admin)
+ */
+export const TriggerTaxDocumentsSyncResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string(),
+});
+
+/**
  * Returns the server-side metric registry so the frontend can render labels, units, and formats without duplicating them.
  * @summary List metric definitions
  */

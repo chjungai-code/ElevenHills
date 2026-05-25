@@ -5,6 +5,7 @@ import syncRouter from "./sync";
 import metricsRouter from "./metrics";
 import financialStatementsRouter from "./financial-statements";
 import companiesRouter from "./companies";
+import taxDocumentsRouter from "./tax-documents";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(syncRouter);
 router.use(metricsRouter);
 router.use(financialStatementsRouter);
 router.use(companiesRouter);
+router.use(taxDocumentsRouter);
 
 export default router;

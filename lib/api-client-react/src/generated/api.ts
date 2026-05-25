@@ -35,6 +35,7 @@ import type {
   QueryResponse,
   RevenueRecord,
   SyncResult,
+  TaxDocumentsResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -828,6 +829,164 @@ export const useTriggerRevenueSync = <
   TContext
 > => {
   return useMutation(getTriggerRevenueSyncMutationOptions(options));
+};
+
+/**
+ * Returns the cached Drive enumeration of the 정주현_법인세_서류_2025 folder, grouped by company → subfolder.
+ * @summary List cached 2025 법인세 documents from Drive
+ */
+export const getGetTaxDocumentsUrl = () => {
+  return `/api/tax-documents`;
+};
+
+export const getTaxDocuments = async (
+  options?: RequestInit,
+): Promise<TaxDocumentsResponse> => {
+  return customFetch<TaxDocumentsResponse>(getGetTaxDocumentsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTaxDocumentsQueryKey = () => {
+  return [`/api/tax-documents`] as const;
+};
+
+export const getGetTaxDocumentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTaxDocuments>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTaxDocuments>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTaxDocumentsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTaxDocuments>>> = ({
+    signal,
+  }) => getTaxDocuments({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTaxDocuments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTaxDocumentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTaxDocuments>>
+>;
+export type GetTaxDocumentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List cached 2025 법인세 documents from Drive
+ */
+
+export function useGetTaxDocuments<
+  TData = Awaited<ReturnType<typeof getTaxDocuments>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTaxDocuments>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTaxDocumentsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Runs the Google Drive tax-documents sync job immediately and returns the result.
+ * @summary Re-enumerate the Drive tax-documents folder (admin)
+ */
+export const getTriggerTaxDocumentsSyncUrl = () => {
+  return `/api/sync/tax-documents`;
+};
+
+export const triggerTaxDocumentsSync = async (
+  options?: RequestInit,
+): Promise<SyncResult> => {
+  return customFetch<SyncResult>(getTriggerTaxDocumentsSyncUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getTriggerTaxDocumentsSyncMutationOptions = <
+  TError = ErrorType<SyncResult>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerTaxDocumentsSync>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof triggerTaxDocumentsSync>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["triggerTaxDocumentsSync"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof triggerTaxDocumentsSync>>,
+    void
+  > = () => {
+    return triggerTaxDocumentsSync(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TriggerTaxDocumentsSyncMutationResult = NonNullable<
+  Awaited<ReturnType<typeof triggerTaxDocumentsSync>>
+>;
+
+export type TriggerTaxDocumentsSyncMutationError = ErrorType<SyncResult>;
+
+/**
+ * @summary Re-enumerate the Drive tax-documents folder (admin)
+ */
+export const useTriggerTaxDocumentsSync = <
+  TError = ErrorType<SyncResult>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerTaxDocumentsSync>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof triggerTaxDocumentsSync>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getTriggerTaxDocumentsSyncMutationOptions(options));
 };
 
 /**

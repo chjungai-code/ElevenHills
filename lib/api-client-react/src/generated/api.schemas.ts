@@ -14,6 +14,26 @@ export interface SyncResult {
   message: string;
 }
 
+export interface TaxDocument {
+  name: string;
+  webViewLink: string;
+  mimeType: string;
+}
+
+export interface TaxDocumentFolder {
+  subfolder: string;
+  files: TaxDocument[];
+}
+
+export type TaxDocumentsResponseDocuments = {
+  [key: string]: TaxDocumentFolder[];
+};
+
+export interface TaxDocumentsResponse {
+  documents: TaxDocumentsResponseDocuments;
+  last_synced_at: string | null;
+}
+
 export interface FinancialStatementLine {
   id: string;
   sort_order: number;

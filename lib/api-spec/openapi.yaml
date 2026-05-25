@@ -226,6 +226,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SyncResult"
+  /tax-documents:
+    get:
+      operationId: getTaxDocuments
+      tags: [sync]
+      summary: List cached 2025 법인세 documents from Drive
+      description: Returns the cached Drive enumeration of the 정주현_법인세_서류_2025 folder, grouped by company → subfolder.
+      responses:
+        "200":
+          description: Tax document cache
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxDocumentsResponse"
+  /sync/tax-documents:
+    post:
+      operationId: triggerTaxDocumentsSync
+      tags: [sync]
+      summary: Re-enumerate the Drive tax-documents folder (admin)
+      description: Runs the Google Drive tax-documents sync job immediately and returns the result.
+      responses:
+        "200":
+          description: Sync completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResult"
+        "500":
+          description: Sync failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResult"
   /metrics:
     get:
       operationId: listMetrics
@@ -291,6 +323,46 @@ components:
       required:
         - success
         - message
+    TaxDocument:
+      type: object
+      properties:
+        name:
+          type: string
+        webViewLink:
+          type: string
+        mimeType:
+          type: string
+      required:
+        - name
+        - webViewLink
+        - mimeType
+    TaxDocumentFolder:
+      type: object
+      properties:
+        subfolder:
+          type: string
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxDocument"
+      required:
+        - subfolder
+        - files
+    TaxDocumentsResponse:
+      type: object
+      properties:
+        documents:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/TaxDocumentFolder"
+        last_synced_at:
+          type: string
+          nullable: true
+      required:
+        - documents
+        - last_synced_at
     FinancialStatementLine:
       type: object
       properties:
