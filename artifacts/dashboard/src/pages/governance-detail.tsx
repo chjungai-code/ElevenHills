@@ -3,6 +3,7 @@ import { Link, useRoute } from 'wouter'
 import { useGetCompanies } from '@workspace/api-client-react'
 import OwnershipBar from '@/components/governance/OwnershipBar'
 import { fromApiCompanies } from '@/lib/data/companies'
+import { getTaxDocuments2025 } from '@/lib/data/tax-documents-2025'
 
 const ROLE_KO: Record<string, string> = {
   ceo:      '대표이사',
@@ -69,6 +70,8 @@ export default function CompanyDetailPage() {
     : null
 
   const children = companies.filter(c => c.parent_id === company.id)
+
+  const taxFolders = getTaxDocuments2025(company.id)
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -285,6 +288,57 @@ export default function CompanyDetailPage() {
           )}
         </div>
       </div>
+
+      {taxFolders.length > 0 && (
+        <div
+          className="rounded-xl p-4"
+          style={{ background: '#13141a', border: '1px solid #272836' }}
+        >
+          <p
+            className="text-[10px] font-mono tracking-widest uppercase mb-3"
+            style={{ color: '#6a6a80' }}
+          >
+            법인세 서류 (2025)
+          </p>
+          <div className="space-y-4">
+            {taxFolders.map(folder => (
+              <div key={folder.subfolder}>
+                <p
+                  className="text-[11px] font-mono mb-2 break-all"
+                  style={{ color: '#6a6a80' }}
+                >
+                  {folder.subfolder}
+                </p>
+                <ul className="space-y-1.5">
+                  {folder.files.map(file => (
+                    <li key={file.webViewLink}>
+                      <a
+                        href={file.webViewLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start gap-2 rounded-md px-3 py-2 text-sm hover:opacity-80 transition-opacity break-keep"
+                        style={{
+                          background: '#1c1d26',
+                          border: '1px solid #272836',
+                          color: '#e8e4dc',
+                        }}
+                      >
+                        <span
+                          className="font-mono text-[10px] mt-0.5 shrink-0"
+                          style={{ color: '#c8a96e' }}
+                        >
+                          PDF
+                        </span>
+                        <span className="min-w-0 break-all">{file.name}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
